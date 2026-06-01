@@ -1,6 +1,6 @@
 -- ═══════════════════════════════════════════════════
---  Худеем Вместе — Supabase Schema
---  Вставить целиком в: Supabase → SQL Editor → Run
+--  Худеем Вместе — Database Schema
+--  Запустить в: Neon → SQL Editor
 -- ═══════════════════════════════════════════════════
 
 -- Таблица пользователей
@@ -50,15 +50,3 @@ create table if not exists calorie_goals (
   user_id  text primary key references users(id) on delete cascade,
   calories integer default 1800
 );
-
--- ── Отключаем RLS (используем свою авторизацию) ──
-alter table users          disable row level security;
-alter table weight_entries disable row level security;
-alter table food_entries   disable row level security;
-alter table calorie_goals  disable row level security;
-
--- ── Разрешаем анонимный доступ через anon key ──
-grant all on users          to anon;
-grant all on weight_entries to anon;
-grant all on food_entries   to anon;
-grant all on calorie_goals  to anon;
