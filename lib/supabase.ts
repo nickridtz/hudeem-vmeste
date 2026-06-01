@@ -49,7 +49,8 @@ class QueryBuilder {
 
   private q(s: string) { return `"${s}"`; }
 
-  async execute(): Promise<DbResult<Row | Row[]>> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async execute(): Promise<DbResult<any>> {
     try {
       /* ── SELECT ── */
       if (this._op === "select") {
@@ -122,10 +123,8 @@ class QueryBuilder {
   }
 
   // Makes the builder thenable — `await supabase.from(...).select(...)` works directly
-  then<T>(
-    resolve: (val: DbResult<Row | Row[]>) => T,
-    reject?: (e: unknown) => T
-  ) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  then<T>(resolve: (val: DbResult<any>) => T, reject?: (e: unknown) => T) {
     return this.execute().then(resolve, reject);
   }
 }
