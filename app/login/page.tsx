@@ -62,7 +62,7 @@ export default function LoginPage() {
             <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Логин</label>
             <input value={loginVal} onChange={(e) => setLoginVal(e.target.value)} required autoComplete="username"
               placeholder="Введи логин"
-              className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all" />
+              className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-base sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all" />
           </div>
 
           <div className="space-y-1.5">
@@ -71,7 +71,7 @@ export default function LoginPage() {
               <input value={password} onChange={(e) => setPassword(e.target.value)} required
                 type={showPass ? "text" : "password"} autoComplete="current-password"
                 placeholder="Введи пароль"
-                className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 pr-10 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all" />
+                className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 pr-10 text-base sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all" />
               <button type="button" onClick={() => setShowPass(!showPass)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 text-xs">
                 {showPass ? "🙈" : "👁️"}

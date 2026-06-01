@@ -106,7 +106,7 @@ function ProfileInner({ session }: { session: Session }) {
 }
 
 const L = "text-xs font-medium text-zinc-500 uppercase tracking-wide";
-const I = "w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all";
+const I = "w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-base sm:text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all";
 
 export default function ProfilePage() {
   return <AuthGuard>{(s) => <ProfileInner session={s} />}</AuthGuard>;

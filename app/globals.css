@@ -48,6 +48,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   animation: fade-in 0.4s ease-out forwards;
 }
 
+/* Safe area for iPhone bottom bar */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Tap highlight removal for mobile buttons */
+button, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

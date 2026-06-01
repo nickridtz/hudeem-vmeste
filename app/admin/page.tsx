@@ -216,7 +216,7 @@ function AdminInner({ session }: { session: Session }) {
   );
 }
 
-const IC  = "w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all";
+const IC  = "w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-base sm:text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all";
 function Field({ label, children, cls = "" }: { label: string; children: React.ReactNode; cls?: string }) {
   return <div className={`space-y-1.5 ${cls}`}><label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{label}</label>{children}</div>;
 }

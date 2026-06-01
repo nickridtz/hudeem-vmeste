@@ -164,7 +164,7 @@ function CaloriesInner({ session }: { session: Session }) {
         </div>
         <div className="flex gap-2">
           <input value={manual} onChange={(e) => setManual(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { onDetected(manual.trim()); setManual(""); } }}
-            placeholder="Штрих-код (EAN-13)" className="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all" />
+            placeholder="Штрих-код (EAN-13)" className="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-base sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all" />
           <button onClick={() => { onDetected(manual.trim()); setManual(""); }} disabled={lookupLoad}
             className="px-4 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 rounded-xl transition-colors disabled:opacity-50">
             {lookupLoad ? <div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" /> : "🔍"}
