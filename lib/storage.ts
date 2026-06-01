@@ -1,55 +1,52 @@
+import { supabase } from "./supabase";
+
 export interface WeightEntry {
   id: string;
-  date: string;   // YYYY-MM-DD
+  date: string;
   weight: number;
 }
 
-function key(userId: string) {
-  return `hudeem_weights_${userId}`;
+export async function loadEntries(userId: string): Promise<WeightEntry[]> {
+  const { data, error } = await supabase
+    .from("weight_entries")
+    .select("id, date, weight")
+    .eq("user_id", userId)
+    .order("date");
+  if (error) { console.error(error); return []; }
+  return (data ?? []).map((r) => ({ id: r.id, date: r.date, weight: Number(r.weight) }));
 }
 
-export function loadEntries(userId: string): WeightEntry[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(key(userId));
-    return raw ? (JSON.parse(raw) as WeightEntry[]) : [];
-  } catch { return []; }
+export async function addEntry(
+  userId: string,
+  entry: Omit<WeightEntry, "id">
+): Promise<WeightEntry[]> {
+  // upsert — one entry per day
+  await supabase
+    .from("weight_entries")
+    .upsert({ user_id: userId, date: entry.date, weight: entry.weight },
+             { onConflict: "user_id,date" });
+  return loadEntries(userId);
 }
 
-function saveEntries(userId: string, entries: WeightEntry[]): void {
-  localStorage.setItem(key(userId), JSON.stringify(entries));
-}
-
-export function addEntry(userId: string, entry: Omit<WeightEntry, "id">): WeightEntry[] {
-  const entries = loadEntries(userId);
-  const newEntry: WeightEntry = { ...entry, id: crypto.randomUUID() };
-  // one entry per day — replace if same date
-  const updated = [...entries.filter((e) => e.date !== entry.date), newEntry];
-  updated.sort((a, b) => a.date.localeCompare(b.date));
-  saveEntries(userId, updated);
-  return updated;
-}
-
-export function updateEntry(
+export async function updateEntry(
   userId: string,
   id: string,
   weight: number,
   date: string
-): WeightEntry[] {
-  const entries = loadEntries(userId).map((e) =>
-    e.id === id ? { ...e, weight, date } : e
-  );
-  entries.sort((a, b) => a.date.localeCompare(b.date));
-  saveEntries(userId, entries);
-  return entries;
+): Promise<WeightEntry[]> {
+  await supabase
+    .from("weight_entries")
+    .update({ weight, date })
+    .eq("id", id)
+    .eq("user_id", userId);
+  return loadEntries(userId);
 }
 
-export function deleteEntry(userId: string, id: string): WeightEntry[] {
-  const updated = loadEntries(userId).filter((e) => e.id !== id);
-  saveEntries(userId, updated);
-  return updated;
+export async function deleteEntry(userId: string, id: string): Promise<WeightEntry[]> {
+  await supabase.from("weight_entries").delete().eq("id", id).eq("user_id", userId);
+  return loadEntries(userId);
 }
 
-export function deleteAllEntriesForUser(userId: string): void {
-  if (typeof window !== "undefined") localStorage.removeItem(key(userId));
+export async function deleteAllEntriesForUser(userId: string): Promise<void> {
+  await supabase.from("weight_entries").delete().eq("user_id", userId);
 }

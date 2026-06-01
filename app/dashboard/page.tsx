@@ -7,18 +7,19 @@ import WeightChart from "@/components/WeightChart";
 import BMIChart from "@/components/BMIChart";
 import HistoryTable from "@/components/HistoryTable";
 import { loadEntries, addEntry, updateEntry, deleteEntry, WeightEntry } from "@/lib/storage";
-import { getUserById } from "@/lib/auth";
+import { getUserById, refreshSession } from "@/lib/auth";
 import {
   progressPercent, daysRemaining, requiredWeeklyLoss,
-  getStatus, formatDate, idealWeightForDate, calcBMI,
-  getBMICategory, saveHeight, loadHeight, todayISO,
+  getStatus, formatDate, idealWeightForDate,
+  calcBMI, getBMICategory, todayISO,
 } from "@/lib/calculations";
+import { supabase } from "@/lib/supabase";
 import type { Session, UserProfile } from "@/lib/auth";
 
 const STATUS_CONFIG = {
   on_track:     { emoji: "🔥", text: "На пути к цели",   cls: "bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-500/20" },
-  goal_reached: { emoji: "✅", text: "Цель достигнута!", cls: "bg-green-50  dark:bg-green-500/10  text-green-600  dark:text-green-400  border-green-200  dark:border-green-500/20"  },
-  behind:       { emoji: "⚠️", text: "Отстаёшь",        cls: "bg-red-50    dark:bg-red-500/10    text-red-600    dark:text-red-400    border-red-200    dark:border-red-500/20"    },
+  goal_reached: { emoji: "✅", text: "Цель достигнута!", cls: "bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-500/20" },
+  behind:       { emoji: "⚠️", text: "Отстаёшь",        cls: "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/20" },
 };
 
 function DashboardInner({ session }: { session: Session }) {
@@ -27,51 +28,58 @@ function DashboardInner({ session }: { session: Session }) {
   const [showTip, setShowTip]     = useState(false);
   const [profile, setProfile]     = useState<UserProfile | null>(null);
   const [heightCm, setHeightCm]   = useState(170);
+  const [loading, setLoading]     = useState(true);
 
   useEffect(() => {
-    const user = getUserById(session.userId);
-    if (!user) return;
-    setProfile(user.profile);
-    const h = loadHeight(session.userId, user.profile.heightCm);
-    setHeightCm(h);
-    const e = loadEntries(session.userId);
-    // Seed starting entry if empty
-    if (e.length === 0) {
-      const seeded = addEntry(session.userId, { date: user.profile.startDate, weight: user.profile.startWeight });
-      setEntries(seeded);
-    } else {
+    (async () => {
+      const user = await getUserById(session.userId);
+      if (!user) return;
+      setProfile(user.profile);
+      setHeightCm(user.profile.heightCm);
+
+      let e = await loadEntries(session.userId);
+      if (e.length === 0) {
+        e = await addEntry(session.userId, { date: user.profile.startDate, weight: user.profile.startWeight });
+      }
       setEntries(e);
-    }
-    if (!sessionStorage.getItem(`tip_${session.userId}`)) {
-      setShowTip(true);
-      sessionStorage.setItem(`tip_${session.userId}`, "1");
-    }
+      setLoading(false);
+
+      if (!sessionStorage.getItem(`tip_${session.userId}`)) {
+        setShowTip(true);
+        sessionStorage.setItem(`tip_${session.userId}`, "1");
+      }
+    })();
   }, [session.userId]);
 
-  if (!profile) return null;
+  if (loading || !profile) return <PageSkeleton />;
 
   const sorted        = [...entries].sort((a, b) => a.date.localeCompare(b.date));
   const latest        = sorted[sorted.length - 1];
   const currentWeight = latest?.weight ?? profile.startWeight;
   const currentDate   = latest?.date   ?? todayISO();
 
-  const progress    = progressPercent(currentWeight, profile.startWeight, profile.goalWeight);
-  const rem         = daysRemaining(profile.goalDate);
-  const weeklyReq   = requiredWeeklyLoss(currentWeight, profile.goalWeight, profile.goalDate);
-  const status      = getStatus(currentWeight, profile);
-  const sc          = STATUS_CONFIG[status];
-  const bmi         = calcBMI(currentWeight, heightCm);
-  const bmiCat      = getBMICategory(bmi);
-  const ideal       = idealWeightForDate(currentDate, profile.startDate, profile.goalDate, profile.startWeight, profile.goalWeight);
-  const deviation   = currentWeight - ideal;
+  const progress  = progressPercent(currentWeight, profile.startWeight, profile.goalWeight);
+  const rem       = daysRemaining(profile.goalDate);
+  const weeklyReq = requiredWeeklyLoss(currentWeight, profile.goalWeight, profile.goalDate);
+  const status    = getStatus(currentWeight, profile);
+  const sc        = STATUS_CONFIG[status];
+  const bmi       = calcBMI(currentWeight, heightCm);
+  const bmiCat    = getBMICategory(bmi);
+  const ideal     = idealWeightForDate(currentDate, profile.startDate, profile.goalDate, profile.startWeight, profile.goalWeight);
+  const deviation = currentWeight - ideal;
 
-  function handleSave(date: string, weight: number) {
+  async function handleSave(date: string, weight: number) {
     if (editEntry) {
-      setEntries(updateEntry(session.userId, editEntry.id, weight, date));
+      setEntries(await updateEntry(session.userId, editEntry.id, weight, date));
       setEditEntry(null);
     } else {
-      setEntries(addEntry(session.userId, { date, weight }));
+      setEntries(await addEntry(session.userId, { date, weight }));
     }
+  }
+
+  async function handleHeightChange(h: number) {
+    setHeightCm(h);
+    await supabase.from("users").update({ height_cm: h }).eq("id", session.userId);
   }
 
   return (
@@ -98,7 +106,7 @@ function DashboardInner({ session }: { session: Session }) {
               <span className="text-xl font-medium text-green-100">кг</span>
             </div>
             <p className="text-green-100 text-xs mt-1">обновлено {formatDate(currentDate)}</p>
-            <div className={`mt-3 inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-medium`}>
+            <div className="mt-3 inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-medium">
               {sc.emoji} {sc.text}
             </div>
           </div>
@@ -142,12 +150,10 @@ function DashboardInner({ session }: { session: Session }) {
       </div>
 
       <WeightChart entries={entries} profile={profile} />
-      <BMIChart entries={entries} heightCm={heightCm}
-        onHeightChange={(h) => { saveHeight(session.userId, h); setHeightCm(h); }}
-        profile={profile} />
+      <BMIChart entries={entries} heightCm={heightCm} onHeightChange={handleHeightChange} profile={profile} />
       <WeightForm onSave={handleSave} editEntry={editEntry} onCancelEdit={() => setEditEntry(null)} profile={profile} />
       <HistoryTable entries={entries} onEdit={setEditEntry}
-        onDelete={(id) => { if (confirm("Удалить запись?")) setEntries(deleteEntry(session.userId, id)); }} />
+        onDelete={async (id) => { if (confirm("Удалить запись?")) setEntries(await deleteEntry(session.userId, id)); }} />
     </div>
   );
 }
@@ -163,6 +169,17 @@ function StatCard({ icon, label, value, sub, valueColor }: { icon: string; label
         {value}
       </p>
       <p className="text-xs text-zinc-400 mt-0.5">{sub}</p>
+    </div>
+  );
+}
+
+function PageSkeleton() {
+  return (
+    <div className="space-y-5 animate-pulse">
+      <div className="h-36 bg-zinc-200 dark:bg-zinc-800 rounded-2xl" />
+      <div className="grid grid-cols-4 gap-3">{[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-zinc-200 dark:bg-zinc-800 rounded-2xl" />)}</div>
+      <div className="h-12 bg-zinc-200 dark:bg-zinc-800 rounded-2xl" />
+      <div className="h-72 bg-zinc-200 dark:bg-zinc-800 rounded-2xl" />
     </div>
   );
 }

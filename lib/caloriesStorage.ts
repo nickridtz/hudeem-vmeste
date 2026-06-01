@@ -1,3 +1,5 @@
+import { supabase } from "./supabase";
+
 export interface FoodEntry {
   id: string;
   date: string;
@@ -13,42 +15,69 @@ export interface FoodEntry {
 
 export interface DailyGoal { calories: number }
 
-const foodKey = (userId: string) => `hudeem_food_${userId}`;
-const goalKey = (userId: string) => `hudeem_calgoal_${userId}`;
-const DEFAULT_GOAL: DailyGoal = { calories: 1800 };
-
-export function loadFoodEntries(userId: string): FoodEntry[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(foodKey(userId));
-    return raw ? (JSON.parse(raw) as FoodEntry[]) : [];
-  } catch { return []; }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function rowToEntry(r: any): FoodEntry {
+  return {
+    id:              r.id,
+    date:            r.date,
+    barcode:         r.barcode ?? "",
+    name:            r.name,
+    brand:           r.brand ?? "",
+    portionGrams:    Number(r.portion_grams),
+    caloriesPer100g: Number(r.calories_per_100g),
+    proteinPer100g:  Number(r.protein_per_100g),
+    fatPer100g:      Number(r.fat_per_100g),
+    carbsPer100g:    Number(r.carbs_per_100g),
+  };
 }
 
-export function saveFoodEntry(userId: string, entry: Omit<FoodEntry, "id">): FoodEntry[] {
-  const entries = loadFoodEntries(userId);
-  const newEntry: FoodEntry = { ...entry, id: crypto.randomUUID() };
-  const updated = [...entries, newEntry];
-  localStorage.setItem(foodKey(userId), JSON.stringify(updated));
-  return updated;
+export async function loadFoodEntries(userId: string): Promise<FoodEntry[]> {
+  const { data, error } = await supabase
+    .from("food_entries")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at");
+  if (error) { console.error(error); return []; }
+  return (data ?? []).map(rowToEntry);
 }
 
-export function deleteFoodEntry(userId: string, id: string): FoodEntry[] {
-  const updated = loadFoodEntries(userId).filter((e) => e.id !== id);
-  localStorage.setItem(foodKey(userId), JSON.stringify(updated));
-  return updated;
+export async function saveFoodEntry(
+  userId: string,
+  entry: Omit<FoodEntry, "id">
+): Promise<FoodEntry[]> {
+  await supabase.from("food_entries").insert({
+    user_id:           userId,
+    date:              entry.date,
+    barcode:           entry.barcode,
+    name:              entry.name,
+    brand:             entry.brand,
+    portion_grams:     entry.portionGrams,
+    calories_per_100g: entry.caloriesPer100g,
+    protein_per_100g:  entry.proteinPer100g,
+    fat_per_100g:      entry.fatPer100g,
+    carbs_per_100g:    entry.carbsPer100g,
+  });
+  return loadFoodEntries(userId);
 }
 
-export function loadGoal(userId: string): DailyGoal {
-  if (typeof window === "undefined") return DEFAULT_GOAL;
-  try {
-    const raw = localStorage.getItem(goalKey(userId));
-    return raw ? (JSON.parse(raw) as DailyGoal) : DEFAULT_GOAL;
-  } catch { return DEFAULT_GOAL; }
+export async function deleteFoodEntry(userId: string, id: string): Promise<FoodEntry[]> {
+  await supabase.from("food_entries").delete().eq("id", id).eq("user_id", userId);
+  return loadFoodEntries(userId);
 }
 
-export function saveGoal(userId: string, goal: DailyGoal): void {
-  localStorage.setItem(goalKey(userId), JSON.stringify(goal));
+export async function loadGoal(userId: string): Promise<DailyGoal> {
+  const { data } = await supabase
+    .from("calorie_goals")
+    .select("calories")
+    .eq("user_id", userId)
+    .single();
+  return { calories: data?.calories ?? 1800 };
+}
+
+export async function saveGoal(userId: string, goal: DailyGoal): Promise<void> {
+  await supabase
+    .from("calorie_goals")
+    .upsert({ user_id: userId, calories: goal.calories }, { onConflict: "user_id" });
 }
 
 export function totalCalories(entries: FoodEntry[]): number {

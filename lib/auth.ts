@@ -1,13 +1,15 @@
+import { supabase } from "./supabase";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface UserProfile {
   displayName: string;
-  avatar: string;        // emoji
+  avatar: string;
   heightCm: number;
   startWeight: number;
   goalWeight: number;
-  startDate: string;     // YYYY-MM-DD
-  goalDate: string;      // YYYY-MM-DD
+  startDate: string;
+  goalDate: string;
 }
 
 export interface User {
@@ -27,72 +29,88 @@ export interface Session {
   avatar: string;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Row ↔ Type mapping ───────────────────────────────────────────────────────
 
-const USERS_KEY    = "hudeem_users";
-const SESSION_KEY  = "hudeem_session";
-const PEPPER       = "HudeemVmeste2026#salt";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function rowToUser(r: any): User {
+  return {
+    id: r.id,
+    login: r.login,
+    passwordHash: r.password_hash,
+    role: r.role,
+    createdAt: r.created_at,
+    profile: {
+      displayName: r.display_name,
+      avatar: r.avatar,
+      heightCm: Number(r.height_cm),
+      startWeight: Number(r.start_weight),
+      goalWeight: Number(r.goal_weight),
+      startDate: r.start_date,
+      goalDate: r.goal_date,
+    },
+  };
+}
 
 // ─── Crypto ───────────────────────────────────────────────────────────────────
 
+const PEPPER = "HudeemVmeste2026#salt";
+
 export async function hashPassword(password: string, login: string): Promise<string> {
   const encoder = new TextEncoder();
-  const data = encoder.encode(`${PEPPER}:${login.toLowerCase()}:${password}`);
-  const buf  = await crypto.subtle.digest("SHA-256", data);
+  const data    = encoder.encode(`${PEPPER}:${login.toLowerCase()}:${password}`);
+  const buf     = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
 
-// ─── User storage ─────────────────────────────────────────────────────────────
-
-export function loadUsers(): User[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(USERS_KEY);
-    return raw ? (JSON.parse(raw) as User[]) : [];
-  } catch { return []; }
-}
-
-function saveUsers(users: User[]): void {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
-
 // ─── Admin seed ───────────────────────────────────────────────────────────────
 
 export async function initializeAdmin(): Promise<void> {
-  if (typeof window === "undefined") return;
-  const users = loadUsers();
-  if (users.some((u) => u.role === "admin")) return;
+  const { data } = await supabase
+    .from("users")
+    .select("id")
+    .eq("role", "admin")
+    .limit(1);
+
+  if (data && data.length > 0) return;
 
   const hash = await hashPassword("Rootfarx289farm!", "Nickr1dtz!");
-  const admin: User = {
-    id: "user-admin",
-    login: "Nickr1dtz!",
-    passwordHash: hash,
-    role: "admin",
-    createdAt: new Date().toISOString(),
-    profile: {
-      displayName: "Никита",
-      avatar: "👑",
-      heightCm: 178,
-      startWeight: 120,
-      goalWeight: 100,
-      startDate: "2026-06-01",
-      goalDate: "2026-08-31",
-    },
-  };
-  saveUsers([admin]);
+  await supabase.from("users").insert({
+    id:           "user-admin",
+    login:        "Nickr1dtz!",
+    password_hash: hash,
+    role:         "admin",
+    display_name: "Никита",
+    avatar:       "👑",
+    height_cm:    178,
+    start_weight: 120,
+    goal_weight:  100,
+    start_date:   "2026-06-01",
+    goal_date:    "2026-08-31",
+  });
 }
 
 // ─── CRUD ─────────────────────────────────────────────────────────────────────
 
-export function getUserById(id: string): User | null {
-  return loadUsers().find((u) => u.id === id) ?? null;
+export async function loadUsers(): Promise<User[]> {
+  const { data, error } = await supabase.from("users").select("*").order("created_at");
+  if (error) { console.error(error); return []; }
+  return (data ?? []).map(rowToUser);
 }
 
-export function getUserByLogin(login: string): User | null {
-  return loadUsers().find((u) => u.login.toLowerCase() === login.toLowerCase()) ?? null;
+export async function getUserById(id: string): Promise<User | null> {
+  const { data } = await supabase.from("users").select("*").eq("id", id).single();
+  return data ? rowToUser(data) : null;
+}
+
+export async function getUserByLogin(login: string): Promise<User | null> {
+  const { data } = await supabase
+    .from("users")
+    .select("*")
+    .ilike("login", login)
+    .single();
+  return data ? rowToUser(data) : null;
 }
 
 export async function createUser(
@@ -101,46 +119,60 @@ export async function createUser(
   profile: UserProfile,
   role: "admin" | "user" = "user"
 ): Promise<User> {
-  const users = loadUsers();
-  if (users.some((u) => u.login.toLowerCase() === login.toLowerCase())) {
-    throw new Error("Пользователь с таким логином уже существует");
-  }
+  const existing = await getUserByLogin(login);
+  if (existing) throw new Error("Пользователь с таким логином уже существует");
+
   const hash = await hashPassword(password, login);
-  const user: User = {
-    id: crypto.randomUUID(),
-    login,
-    passwordHash: hash,
-    role,
-    createdAt: new Date().toISOString(),
-    profile,
-  };
-  saveUsers([...users, user]);
-  return user;
+  const { data, error } = await supabase
+    .from("users")
+    .insert({
+      login,
+      password_hash: hash,
+      role,
+      display_name:  profile.displayName,
+      avatar:        profile.avatar,
+      height_cm:     profile.heightCm,
+      start_weight:  profile.startWeight,
+      goal_weight:   profile.goalWeight,
+      start_date:    profile.startDate,
+      goal_date:     profile.goalDate,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return rowToUser(data);
 }
 
-export function updateUserProfile(id: string, profile: Partial<UserProfile>): User {
-  const users = loadUsers();
-  const idx   = users.findIndex((u) => u.id === id);
-  if (idx === -1) throw new Error("Пользователь не найден");
-  users[idx] = { ...users[idx], profile: { ...users[idx].profile, ...profile } };
-  saveUsers(users);
-  return users[idx];
+export async function updateUserProfile(
+  id: string,
+  profile: Partial<UserProfile>
+): Promise<void> {
+  const update: Record<string, unknown> = {};
+  if (profile.displayName !== undefined) update.display_name = profile.displayName;
+  if (profile.avatar      !== undefined) update.avatar       = profile.avatar;
+  if (profile.heightCm    !== undefined) update.height_cm    = profile.heightCm;
+  if (profile.startWeight !== undefined) update.start_weight = profile.startWeight;
+  if (profile.goalWeight  !== undefined) update.goal_weight  = profile.goalWeight;
+  if (profile.startDate   !== undefined) update.start_date   = profile.startDate;
+  if (profile.goalDate    !== undefined) update.goal_date    = profile.goalDate;
+  await supabase.from("users").update(update).eq("id", id);
 }
 
 export async function changePassword(id: string, newPassword: string): Promise<void> {
-  const users = loadUsers();
-  const idx   = users.findIndex((u) => u.id === id);
-  if (idx === -1) throw new Error("Пользователь не найден");
-  users[idx].passwordHash = await hashPassword(newPassword, users[idx].login);
-  saveUsers(users);
+  const { data } = await supabase.from("users").select("login").eq("id", id).single();
+  if (!data) return;
+  const hash = await hashPassword(newPassword, data.login);
+  await supabase.from("users").update({ password_hash: hash }).eq("id", id);
 }
 
-export function deleteUser(id: string): void {
-  const users = loadUsers().filter((u) => u.id !== id);
-  saveUsers(users);
+export async function deleteUser(id: string): Promise<void> {
+  await supabase.from("users").delete().eq("id", id);
 }
 
-// ─── Session ──────────────────────────────────────────────────────────────────
+// ─── Session (localStorage) ───────────────────────────────────────────────────
+
+const SESSION_KEY = "hudeem_session";
 
 export function getSession(): Session | null {
   if (typeof window === "undefined") return null;
@@ -150,21 +182,16 @@ export function getSession(): Session | null {
   } catch { return null; }
 }
 
-function setSession(session: Session): void {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+function setSession(s: Session): void {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(s));
 }
 
 export function logout(): void {
   if (typeof window !== "undefined") localStorage.removeItem(SESSION_KEY);
 }
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
-
-export async function login(
-  loginInput: string,
-  password: string
-): Promise<Session | null> {
-  const user = getUserByLogin(loginInput);
+export async function login(loginInput: string, password: string): Promise<Session | null> {
+  const user = await getUserByLogin(loginInput);
   if (!user) return null;
   const hash = await hashPassword(password, user.login);
   if (hash !== user.passwordHash) return null;
@@ -179,15 +206,10 @@ export async function login(
   return session;
 }
 
-// Refresh session displayName/avatar after profile update
-export function refreshSession(): void {
+export async function refreshSession(): Promise<void> {
   const session = getSession();
   if (!session) return;
-  const user = getUserById(session.userId);
+  const user = await getUserById(session.userId);
   if (!user) return;
-  setSession({
-    ...session,
-    displayName: user.profile.displayName,
-    avatar:      user.profile.avatar,
-  });
+  setSession({ ...session, displayName: user.profile.displayName, avatar: user.profile.avatar });
 }
