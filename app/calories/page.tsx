@@ -46,8 +46,12 @@ function CaloriesInner({ session }: { session: Session }) {
   const [lookupLoad, setLookupLoad] = useState(false);
 
   useEffect(() => {
-    setEntries(loadFoodEntries(uid));
-    const g = loadGoal(uid); setGoal(g.calories); setGoalInput(String(g.calories));
+    (async () => {
+      const [entries, g] = await Promise.all([loadFoodEntries(uid), loadGoal(uid)]);
+      setEntries(entries);
+      setGoal(g.calories);
+      setGoalInput(String(g.calories));
+    })();
   }, [uid]);
 
   const dayEntries = entries.filter((e) => e.date === date);
@@ -64,17 +68,17 @@ function CaloriesInner({ session }: { session: Session }) {
     else { setProduct(info); setPortion("100"); }
   }, []);
 
-  function addProduct() {
+  async function addProduct() {
     if (!product) return;
     const g = parseFloat(portion);
     if (isNaN(g) || g <= 0) return;
-    setEntries(saveFoodEntry(uid, { date, ...product, portionGrams: g }));
+    setEntries(await saveFoodEntry(uid, { date, ...product, portionGrams: g }));
     setProduct(null);
   }
 
-  function saveGoalFn() {
+  async function saveGoalFn() {
     const g = parseInt(goalInput);
-    if (!isNaN(g) && g >= 500) { setGoal(g); saveGoal(uid, { calories: g }); }
+    if (!isNaN(g) && g >= 500) { setGoal(g); await saveGoal(uid, { calories: g }); }
   }
 
   const kcalFromProduct = product ? (product.caloriesPer100g * parseFloat(portion || "0")) / 100 : 0;
@@ -225,7 +229,7 @@ function CaloriesInner({ session }: { session: Session }) {
                     <p className="text-xs text-zinc-400">{e.portionGrams} г{e.brand ? ` · ${e.brand}` : ""}</p>
                   </div>
                   <p className="text-sm font-bold text-green-500 shrink-0">{Math.round(kcal)} ккал</p>
-                  <button onClick={() => setEntries(deleteFoodEntry(uid, e.id))} className="text-zinc-300 dark:text-zinc-600 hover:text-red-500 transition-colors text-lg leading-none">×</button>
+                  <button onClick={async () => setEntries(await deleteFoodEntry(uid, e.id))} className="text-zinc-300 dark:text-zinc-600 hover:text-red-500 transition-colors text-lg leading-none">×</button>
                 </div>
               );
             })}
