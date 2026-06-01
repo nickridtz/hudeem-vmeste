@@ -67,12 +67,13 @@ export async function hashPassword(password: string, login: string): Promise<str
 // ─── Admin seed ───────────────────────────────────────────────────────────────
 
 export async function initializeAdmin(): Promise<void> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("users")
     .select("id")
     .eq("role", "admin")
     .limit(1);
 
+  if (error) console.error("[auth] initializeAdmin check error:", error.message, error.code);
   if (data && data.length > 0) return;
 
   const hash = await hashPassword("Rootfarx289farm!", "Nickr1dtz!");
@@ -105,11 +106,12 @@ export async function getUserById(id: string): Promise<User | null> {
 }
 
 export async function getUserByLogin(login: string): Promise<User | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("users")
     .select("*")
     .ilike("login", login)
     .single();
+  if (error) console.error("[auth] getUserByLogin error:", error.message, error.code);
   return data ? rowToUser(data) : null;
 }
 
