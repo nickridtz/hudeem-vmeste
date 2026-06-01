@@ -13,7 +13,8 @@ export async function loadEntries(userId: string): Promise<WeightEntry[]> {
     .eq("user_id", userId)
     .order("date");
   if (error) { console.error(error); return []; }
-  return (data ?? []).map((r) => ({ id: r.id, date: r.date, weight: Number(r.weight) }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data ?? []).map((r: any) => ({ id: r.id, date: r.date, weight: Number(r.weight) }));
 }
 
 export async function addEntry(
