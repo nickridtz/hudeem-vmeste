@@ -36,7 +36,13 @@ class QueryBuilder {
     this._req = { table, op: "select", selectCols: "*", conditions: [] };
   }
 
-  select(cols = "*") { this._req.selectCols = cols; this._req.op = "select"; return this; }
+  select(cols = "*") {
+    this._req.selectCols = cols;
+    // only set op to "select" if no other op has been set
+    if (this._req.op !== "insert" && this._req.op !== "update" && this._req.op !== "upsert")
+      this._req.op = "select";
+    return this;
+  }
   insert(data: Row)   { this._req.op = "insert"; this._req.data = data; return this; }
   update(data: Row)   { this._req.op = "update"; this._req.data = data; return this; }
   delete()            { this._req.op = "delete"; return this; }
