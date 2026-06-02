@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import dynamic from "next/dynamic";
+import { useState, useEffect } from "react";
 import { AuthGuard } from "@/components/AuthGuard";
 import {
   loadFoodEntries, saveFoodEntry, deleteFoodEntry,
@@ -29,27 +28,16 @@ function calcKBJU(profile: UserProfile) {
   };
 }
 
-const BarcodeScanner = dynamic(() => import("@/components/BarcodeScanner"), { ssr: false });
-
-interface ProductInfo {
-  barcode: string; name: string; brand: string;
-  caloriesPer100g: number; proteinPer100g: number; fatPer100g: number; carbsPer100g: number;
+interface ManualEntry {
+  name: string; brand: string;
+  caloriesPer100g: string; proteinPer100g: string; fatPer100g: string; carbsPer100g: string;
+  portionGrams: string;
 }
 
-async function fetchProduct(barcode: string): Promise<ProductInfo | null> {
-  try {
-    const res  = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
-    const json = await res.json();
-    if (json.status !== 1 || !json.product) return null;
-    const p = json.product, n = p.nutriments ?? {};
-    return {
-      barcode, name: p.product_name_ru || p.product_name || "Неизвестный продукт",
-      brand: p.brands || "",
-      caloriesPer100g: n["energy-kcal_100g"] ?? n["energy-kcal"] ?? 0,
-      proteinPer100g: n.proteins_100g ?? 0, fatPer100g: n.fat_100g ?? 0, carbsPer100g: n.carbohydrates_100g ?? 0,
-    };
-  } catch { return null; }
-}
+const EMPTY_FORM: ManualEntry = {
+  name: "", brand: "", caloriesPer100g: "", proteinPer100g: "",
+  fatPer100g: "", carbsPer100g: "", portionGrams: "100",
+};
 
 function CaloriesInner({ session }: { session: Session }) {
   const uid = session.userId;
@@ -57,12 +45,8 @@ function CaloriesInner({ session }: { session: Session }) {
   const [goal, setGoal]               = useState(1800);
   const [goalInput, setGoalInput]     = useState("1800");
   const [date, setDate]               = useState(todayISO());
-  const [showScanner, setShowScanner] = useState(false);
-  const [manual, setManual]           = useState("");
-  const [product, setProduct]         = useState<ProductInfo | null>(null);
-  const [portion, setPortion]         = useState("100");
-  const [lookupErr, setLookupErr]     = useState<string | null>(null);
-  const [lookupLoad, setLookupLoad]   = useState(false);
+  const [form, setForm]               = useState<ManualEntry>(EMPTY_FORM);
+  const [showForm, setShowForm]       = useState(false);
   const [glasses, setGlasses]         = useState(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const WATER_GOAL = 8;
@@ -99,20 +83,23 @@ function CaloriesInner({ session }: { session: Session }) {
   const progress   = Math.min(100, (dayKcal / goal) * 100);
   const remaining  = goal - dayKcal;
 
-  const onDetected = useCallback(async (barcode: string) => {
-    setShowScanner(false); setLookupErr(null); setProduct(null); setLookupLoad(true);
-    const info = await fetchProduct(barcode);
-    setLookupLoad(false);
-    if (!info) setLookupErr(`Штрих-код ${barcode} не найден в базе.`);
-    else { setProduct(info); setPortion("100"); }
-  }, []);
-
-  async function addProduct() {
-    if (!product) return;
-    const g = parseFloat(portion);
-    if (isNaN(g) || g <= 0) return;
-    setEntries(await saveFoodEntry(uid, { date, ...product, portionGrams: g }));
-    setProduct(null);
+  async function addManual(e: React.FormEvent) {
+    e.preventDefault();
+    const g = parseFloat(form.portionGrams);
+    if (!form.name.trim() || isNaN(g) || g <= 0) return;
+    setEntries(await saveFoodEntry(uid, {
+      date,
+      barcode: "",
+      name:            form.name.trim(),
+      brand:           form.brand.trim(),
+      portionGrams:    g,
+      caloriesPer100g: parseFloat(form.caloriesPer100g) || 0,
+      proteinPer100g:  parseFloat(form.proteinPer100g)  || 0,
+      fatPer100g:      parseFloat(form.fatPer100g)      || 0,
+      carbsPer100g:    parseFloat(form.carbsPer100g)    || 0,
+    }));
+    setForm(EMPTY_FORM);
+    setShowForm(false);
   }
 
   async function saveGoalFn() {
@@ -120,16 +107,14 @@ function CaloriesInner({ session }: { session: Session }) {
     if (!isNaN(g) && g >= 500) { setGoal(g); await saveGoal(uid, { calories: g }); }
   }
 
-  const kcalFromProduct = product ? (product.caloriesPer100g * parseFloat(portion || "0")) / 100 : 0;
+  const previewKcal = (parseFloat(form.caloriesPer100g) || 0) * (parseFloat(form.portionGrams) || 0) / 100;
   const barColor = progress < 80 ? "from-green-500 to-emerald-400" : progress < 100 ? "from-amber-500 to-yellow-400" : "from-red-500 to-rose-400";
 
   return (
     <div className="space-y-5">
-      {showScanner && <BarcodeScanner onDetected={onDetected} onClose={() => setShowScanner(false)} />}
-
       <div>
         <h2 className="text-2xl font-extrabold text-zinc-900 dark:text-white">🍎 Дневник питания</h2>
-        <p className="text-zinc-400 text-sm mt-1">Сканируй штрих-коды · следи за КБЖУ</p>
+        <p className="text-zinc-400 text-sm mt-1">Добавляй продукты · следи за КБЖУ</p>
       </div>
 
       {/* Date + Goal */}
@@ -191,61 +176,68 @@ function CaloriesInner({ session }: { session: Session }) {
 
       {/* Add product */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-card dark:shadow-none space-y-4">
-        <h3 className="font-semibold text-zinc-900 dark:text-white text-base">Добавить продукт</h3>
-        <button onClick={() => setShowScanner(true)}
-          className="w-full bg-green-500 hover:bg-green-400 text-white font-semibold rounded-xl py-3 flex items-center justify-center gap-2 text-sm shadow-sm transition-colors">
-          📷 Сканировать штрих-код
-        </button>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-px bg-zinc-100 dark:bg-zinc-800" />
-          <span className="text-xs text-zinc-400">или введи вручную</span>
-          <div className="flex-1 h-px bg-zinc-100 dark:bg-zinc-800" />
-        </div>
-        <div className="flex gap-2">
-          <input value={manual} onChange={(e) => setManual(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { onDetected(manual.trim()); setManual(""); } }}
-            placeholder="Штрих-код (EAN-13)" className="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-base sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all" />
-          <button onClick={() => { onDetected(manual.trim()); setManual(""); }} disabled={lookupLoad}
-            className="px-4 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 rounded-xl transition-colors disabled:opacity-50">
-            {lookupLoad ? <div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" /> : "🔍"}
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-zinc-900 dark:text-white text-base">Добавить продукт</h3>
+          <button onClick={() => setShowForm(!showForm)}
+            className="text-sm bg-green-500 hover:bg-green-400 text-white font-semibold rounded-xl px-4 py-2 transition-colors shadow-sm">
+            {showForm ? "Отмена" : "＋ Добавить"}
           </button>
         </div>
-        {lookupErr && <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 text-sm text-red-600 dark:text-red-300">{lookupErr}</div>}
-        {product && (
-          <div className="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-4 space-y-4 animate-fade-in">
-            <div className="flex justify-between gap-2">
-              <div>
-                <p className="font-semibold text-zinc-900 dark:text-white">{product.name}</p>
-                {product.brand && <p className="text-xs text-zinc-400">{product.brand}</p>}
+        {showForm && (
+          <form onSubmit={addManual} className="space-y-3 animate-fade-in">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2 space-y-1">
+                <label className={lbl}>Название *</label>
+                <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})}
+                  placeholder="Куриная грудка" className={inp} />
               </div>
-              <button onClick={() => setProduct(null)} className="text-zinc-400 hover:text-zinc-600 text-xl leading-none">×</button>
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {[["Ккал/100г", Math.round(product.caloriesPer100g), "text-green-500"],
-                ["Белки", product.proteinPer100g.toFixed(1), "text-blue-500"],
-                ["Жиры", product.fatPer100g.toFixed(1), "text-amber-500"],
-                ["Углеводы", product.carbsPer100g.toFixed(1), "text-orange-500"],
-              ].map(([l, v, c]) => (
-                <div key={String(l)} className="bg-white dark:bg-zinc-900 rounded-lg p-2 text-center border border-zinc-100 dark:border-zinc-700">
-                  <p className={`text-sm font-bold ${c}`}>{v}</p>
-                  <p className="text-[10px] text-zinc-400">{l}</p>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-3 items-end">
-              <div className="flex-1 space-y-1.5">
-                <label className="text-xs font-medium text-zinc-400">Порция (г)</label>
-                <input type="number" value={portion} onChange={(e) => setPortion(e.target.value)} min="1"
-                  className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-600 rounded-xl px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all" />
+              <div className="col-span-2 space-y-1">
+                <label className={lbl}>Бренд / марка</label>
+                <input value={form.brand} onChange={e => setForm({...form, brand: e.target.value})}
+                  placeholder="Необязательно" className={inp} />
               </div>
-              <div className="text-center pb-1">
-                <p className="text-2xl font-extrabold text-green-500">{Math.round(kcalFromProduct)}</p>
-                <p className="text-xs text-zinc-400">ккал</p>
+              <div className="space-y-1">
+                <label className={lbl}>Ккал / 100г *</label>
+                <input required type="number" min="0" step="0.1" value={form.caloriesPer100g}
+                  onChange={e => setForm({...form, caloriesPer100g: e.target.value})}
+                  placeholder="165" className={inp} />
+              </div>
+              <div className="space-y-1">
+                <label className={lbl}>Порция (г) *</label>
+                <input required type="number" min="1" value={form.portionGrams}
+                  onChange={e => setForm({...form, portionGrams: e.target.value})}
+                  placeholder="100" className={inp} />
+              </div>
+              <div className="space-y-1">
+                <label className={lbl}>Белки / 100г</label>
+                <input type="number" min="0" step="0.1" value={form.proteinPer100g}
+                  onChange={e => setForm({...form, proteinPer100g: e.target.value})}
+                  placeholder="31" className={inp} />
+              </div>
+              <div className="space-y-1">
+                <label className={lbl}>Жиры / 100г</label>
+                <input type="number" min="0" step="0.1" value={form.fatPer100g}
+                  onChange={e => setForm({...form, fatPer100g: e.target.value})}
+                  placeholder="3.6" className={inp} />
+              </div>
+              <div className="space-y-1 col-span-2">
+                <label className={lbl}>Углеводы / 100г</label>
+                <input type="number" min="0" step="0.1" value={form.carbsPer100g}
+                  onChange={e => setForm({...form, carbsPer100g: e.target.value})}
+                  placeholder="0" className={inp} />
               </div>
             </div>
-            <button onClick={addProduct} className="w-full bg-green-500 hover:bg-green-400 text-white font-semibold rounded-xl py-2.5 text-sm transition-colors shadow-sm">
+            {previewKcal > 0 && (
+              <div className="bg-green-50 dark:bg-green-500/10 rounded-xl p-3 text-center">
+                <span className="text-2xl font-extrabold text-green-500">{Math.round(previewKcal)}</span>
+                <span className="text-sm text-zinc-400 ml-1">ккал в порции</span>
+              </div>
+            )}
+            <button type="submit"
+              className="w-full bg-green-500 hover:bg-green-400 text-white font-semibold rounded-xl py-2.5 text-sm transition-colors shadow-sm">
               Добавить в дневник
             </button>
-          </div>
+          </form>
         )}
       </div>
 
@@ -358,6 +350,9 @@ function CaloriesInner({ session }: { session: Session }) {
     </div>
   );
 }
+
+const lbl = "text-xs font-medium text-zinc-500 uppercase tracking-wide";
+const inp = "w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-base sm:text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all";
 
 export default function CaloriesPage() {
   return <AuthGuard>{(s) => <CaloriesInner session={s} />}</AuthGuard>;
