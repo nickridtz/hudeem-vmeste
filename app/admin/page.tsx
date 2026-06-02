@@ -96,11 +96,11 @@ function AdminInner({ session }: { session: Session }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-extrabold text-zinc-900 dark:text-white">⚙️ Панель администратора</h2>
+          <h2 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tighter-2">⚙️ Панель администратора</h2>
           <p className="text-zinc-400 text-sm mt-1">Управление участниками</p>
         </div>
         <button onClick={() => { setShowCreate(true); setForm({ ...DEFAULT_PROFILE, login: "", password: "" }); setFormError(""); }}
-          className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-white font-semibold rounded-xl px-4 py-2.5 text-sm shadow-sm transition-colors">
+          className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-bold rounded-xl px-4 py-2.5 text-sm shadow-glow-sm hover:shadow-glow active:scale-[0.98] transition-all">
           ＋ Добавить участника
         </button>
       </div>
@@ -111,9 +111,9 @@ function AdminInner({ session }: { session: Session }) {
         <SummaryCard icon="👑" label="Ваш логин" value={session.login} />
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-card dark:shadow-none">
+      <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-800/70 rounded-3xl overflow-hidden shadow-soft dark:shadow-none">
         <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
-          <span className="font-semibold text-zinc-900 dark:text-white text-sm">Участники</span>
+          <span className="font-bold text-zinc-900 dark:text-white text-sm">Участники</span>
         </div>
         {loading ? (
           <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin" /></div>
@@ -223,8 +223,8 @@ function Field({ label, children, cls = "" }: { label: string; children: React.R
 }
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl overflow-y-auto max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-md shadow-float overflow-y-auto max-h-[90vh] animate-scale-in">
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
           <h3 className="font-semibold text-zinc-900 dark:text-white">{title}</h3>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 text-2xl leading-none">×</button>
@@ -236,9 +236,9 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 }
 function SummaryCard({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-card dark:shadow-none">
-      <div className="flex justify-between mb-1"><span className="text-xs text-zinc-500 font-medium">{label}</span><span>{icon}</span></div>
-      <p className="text-xl font-bold text-zinc-900 dark:text-white">{value}</p>
+    <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-800/70 rounded-2xl p-4 shadow-card dark:shadow-none">
+      <div className="flex justify-between mb-1"><span className="text-xs text-zinc-500 font-semibold">{label}</span><span>{icon}</span></div>
+      <p className="text-xl font-black text-zinc-900 dark:text-white tabular-nums">{value}</p>
     </div>
   );
 }

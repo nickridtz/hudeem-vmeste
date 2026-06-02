@@ -41,22 +41,25 @@ export default function LoginPage() {
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
       <div className="absolute top-4 right-4"><ThemeToggle /></div>
 
-      <div className="w-full max-w-sm space-y-8 animate-fade-in">
+      <div className="w-full max-w-sm space-y-8 animate-scale-in">
         {/* Brand */}
         <div className="text-center space-y-4">
-          <div className="mx-auto w-28 h-28 rounded-3xl overflow-hidden shadow-xl ring-4 ring-white dark:ring-zinc-800">
-            <Image src="/logo.png" alt="Худеем Вместе" width={112} height={112} className="object-cover w-full h-full" priority />
+          <div className="relative mx-auto w-28 h-28">
+            <div className="absolute inset-0 bg-green-500/30 rounded-[2rem] blur-2xl animate-glow-pulse" />
+            <div className="relative w-28 h-28 rounded-[2rem] overflow-hidden shadow-glow ring-4 ring-white/80 dark:ring-zinc-800">
+              <Image src="/logo.png" alt="Худеем Вместе" width={112} height={112} className="object-cover w-full h-full" priority />
+            </div>
           </div>
           <div>
-            <h1 className="text-2xl font-extrabold text-zinc-900 dark:text-white">Худеем Вместе</h1>
-            <p className="text-zinc-400 text-sm mt-1">Совместное похудение · Лето 2026</p>
+            <h1 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tighter-2">Худеем <span className="text-gradient">Вместе</span></h1>
+            <p className="text-zinc-400 text-sm mt-1.5">Совместное похудение · Лето 2026</p>
           </div>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit}
-          className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-card dark:shadow-none space-y-4">
-          <h2 className="text-base font-semibold text-zinc-900 dark:text-white">Вход в аккаунт</h2>
+          className="glass border border-zinc-200/60 dark:border-zinc-800/60 rounded-3xl p-6 shadow-float space-y-4">
+          <h2 className="text-base font-bold text-zinc-900 dark:text-white">Вход в аккаунт</h2>
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Логин</label>
@@ -86,7 +89,7 @@ export default function LoginPage() {
           )}
 
           <button type="submit" disabled={loading}
-            className="w-full bg-green-500 hover:bg-green-400 disabled:opacity-60 text-white font-semibold rounded-xl py-2.5 text-sm transition-colors shadow-sm flex items-center justify-center gap-2">
+            className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 disabled:opacity-60 text-white font-bold rounded-xl py-3 text-sm transition-all shadow-glow-sm hover:shadow-glow active:scale-[0.98] flex items-center justify-center gap-2">
             {loading
               ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               : "Войти →"}

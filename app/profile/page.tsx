@@ -48,11 +48,11 @@ function ProfileInner({ session }: { session: Session }) {
   return (
     <div className="space-y-5 max-w-lg">
       <div>
-        <h2 className="text-2xl font-extrabold text-zinc-900 dark:text-white">👤 Мой профиль</h2>
+        <h2 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tighter-2">👤 Мой профиль</h2>
         <p className="text-zinc-400 text-sm mt-1">Личные настройки и цели</p>
       </div>
 
-      <div className="flex items-center gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-card dark:shadow-none">
+      <div className="flex items-center gap-4 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-800/70 rounded-3xl p-5 shadow-soft dark:shadow-none">
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-100 to-emerald-200 dark:from-green-900/40 dark:to-emerald-900/30 flex items-center justify-center text-4xl shadow-sm">
           {profile.avatar}
         </div>
@@ -64,7 +64,7 @@ function ProfileInner({ session }: { session: Session }) {
       </div>
 
       <form onSubmit={handleSaveProfile}
-        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-card dark:shadow-none space-y-5">
+        className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-800/70 rounded-3xl p-5 shadow-soft dark:shadow-none space-y-5">
         <h3 className="font-semibold text-zinc-900 dark:text-white text-base">Основная информация</h3>
         <div className="space-y-1.5">
           <label className={L}>Отображаемое имя</label>
@@ -104,13 +104,13 @@ function ProfileInner({ session }: { session: Session }) {
             </select>
           </div>
         </div>
-        <button type="submit" disabled={saving} className="w-full bg-green-500 hover:bg-green-400 disabled:opacity-60 text-white font-semibold rounded-xl py-2.5 text-sm transition-colors shadow-sm">
+        <button type="submit" disabled={saving} className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 disabled:opacity-60 text-white font-bold rounded-xl py-2.5 text-sm transition-all shadow-glow-sm hover:shadow-glow active:scale-[0.98]">
           {saved ? "✓ Сохранено!" : saving ? "Сохраняю…" : "Сохранить профиль"}
         </button>
       </form>
 
       <form onSubmit={handleChangePassword}
-        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-card dark:shadow-none space-y-4">
+        className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-800/70 rounded-3xl p-5 shadow-soft dark:shadow-none space-y-4">
         <h3 className="font-semibold text-zinc-900 dark:text-white text-base">Сменить пароль</h3>
         <div className="space-y-1.5"><label className={L}>Текущий пароль</label><input type="password" value={curPw} onChange={(e) => setCurPw(e.target.value)} required className={I} autoComplete="current-password" /></div>
         <div className="space-y-1.5"><label className={L}>Новый пароль</label><input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} required minLength={6} className={I} autoComplete="new-password" /></div>

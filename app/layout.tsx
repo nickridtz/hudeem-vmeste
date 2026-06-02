@@ -34,14 +34,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 antialiased transition-colors duration-200">
+      <body className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 antialiased transition-colors duration-300">
         <ThemeProvider>
+          <div className="app-bg" aria-hidden />
           <NavBar />
           <main className="max-w-4xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-5 animate-fade-in">
             {children}
           </main>
           <footer className="hidden sm:block max-w-4xl mx-auto px-4 py-8 text-center text-zinc-400 dark:text-zinc-600 text-xs">
-            Худеем Вместе 🤝 · Лето 2026
+            Сделано с 💚 · Худеем Вместе · 2026
           </footer>
         </ThemeProvider>
       </body>

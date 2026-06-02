@@ -64,12 +64,12 @@ function NutritionInner({ session }: { session: Session }) {
   return (
     <div className="space-y-5 max-w-lg">
       <div>
-        <h2 className="text-2xl font-extrabold text-zinc-900 dark:text-white">🍎 Питание</h2>
+        <h2 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tighter-2">🍎 Питание</h2>
         <p className="text-zinc-400 text-sm mt-1">Твоя норма · вода · настрой в профиле</p>
       </div>
 
       {/* ── КБЖУ ──────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-card dark:shadow-none space-y-5">
+      <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-800/70 rounded-3xl p-5 shadow-soft dark:shadow-none space-y-5">
         <div>
           <h3 className="font-semibold text-zinc-900 dark:text-white text-base">🧮 Норма КБЖУ на день</h3>
           <p className="text-xs text-zinc-400 mt-0.5">По формуле Миффлина — Сен-Жеора</p>
@@ -123,7 +123,7 @@ function NutritionInner({ session }: { session: Session }) {
       </div>
 
       {/* ── Вода ──────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-card dark:shadow-none space-y-4">
+      <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-800/70 rounded-3xl p-5 shadow-soft dark:shadow-none space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-semibold text-zinc-900 dark:text-white text-base">💧 Вода сегодня</h3>

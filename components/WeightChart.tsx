@@ -44,8 +44,8 @@ export default function WeightChart({ entries, profile }: Props) {
   const yMax = Math.max(profile.startWeight + 5, profile.goalWeight + 5);
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-card dark:shadow-none">
-      <h2 className="text-base font-semibold text-zinc-900 dark:text-white mb-4">📈 График веса</h2>
+    <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-800/70 rounded-3xl p-5 shadow-soft dark:shadow-none">
+      <h2 className="text-base font-bold text-zinc-900 dark:text-white mb-4">📈 График веса</h2>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data} margin={{ top: 5, right: 10, left: -14, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" className="dark:[stroke:#27272a]" />

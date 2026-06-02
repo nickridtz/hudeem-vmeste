@@ -47,7 +47,7 @@ export default function BMIChart({ entries, heightCm, onHeightChange, profile }:
   }
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-card dark:shadow-none">
+    <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-800/70 rounded-3xl overflow-hidden shadow-soft dark:shadow-none">
       <div className="px-5 pt-5 pb-3 flex items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-zinc-900 dark:text-white">🏋️ Индекс массы тела</h2>

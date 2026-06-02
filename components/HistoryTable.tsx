@@ -14,15 +14,15 @@ export default function HistoryTable({ entries, onEdit, onDelete }: Props) {
 
   if (sorted.length === 0)
     return (
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 text-center text-zinc-400 text-sm shadow-card dark:shadow-none">
+      <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-800/70 rounded-3xl p-8 text-center text-zinc-400 text-sm shadow-soft dark:shadow-none">
         Нет записей
       </div>
     );
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-card dark:shadow-none">
+    <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-800/70 rounded-3xl overflow-hidden shadow-soft dark:shadow-none">
       <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
-        <h2 className="text-base font-semibold text-zinc-900 dark:text-white">📋 История взвешиваний</h2>
+        <h2 className="text-base font-bold text-zinc-900 dark:text-white">📋 История взвешиваний</h2>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">

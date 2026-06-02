@@ -29,8 +29,8 @@ export default function WeightForm({ onSave, editEntry, onCancelEdit, profile }:
   }
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-card dark:shadow-none">
-      <h2 className="text-base font-semibold text-zinc-900 dark:text-white mb-4">
+    <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-800/70 rounded-3xl p-5 shadow-soft dark:shadow-none">
+      <h2 className="text-base font-bold text-zinc-900 dark:text-white mb-4">
         {editEntry ? "✏️ Редактировать запись" : "➕ Добавить взвешивание"}
       </h2>
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -48,7 +48,7 @@ export default function WeightForm({ onSave, editEntry, onCancelEdit, profile }:
         </div>
         <div className="flex gap-2">
           <button type="submit"
-            className="flex-1 bg-green-500 hover:bg-green-400 text-white font-semibold rounded-xl py-2.5 text-sm transition-colors shadow-sm">
+            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-bold rounded-xl py-2.5 text-sm transition-all shadow-glow-sm hover:shadow-glow active:scale-[0.98]">
             {editEntry ? "Сохранить" : "Добавить"}
           </button>
           {editEntry && onCancelEdit && (

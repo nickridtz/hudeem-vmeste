@@ -9,7 +9,7 @@ import { ThemeToggle } from "./ThemeToggle";
 
 const NAV = [
   { href: "/dashboard",   emoji: "📊", text: "Мой вес"  },
-  { href: "/calories",    emoji: "🍎", text: "Калории"  },
+  { href: "/calories",    emoji: "🍎", text: "Питание"  },
   { href: "/leaderboard", emoji: "🏆", text: "Лидеры"   },
   { href: "/chat",        emoji: "💬", text: "Чат"      },
 ];
@@ -34,33 +34,34 @@ export function NavBar() {
   return (
     <>
       {/* ── Top header ── */}
-      <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md sticky top-0 z-50">
+      <header className="sticky top-0 z-50 glass border-b border-zinc-200/60 dark:border-zinc-800/60">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="flex items-center gap-3 h-14">
+          <div className="flex items-center gap-3 h-16">
 
             {/* Brand */}
-            <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-              <div className="w-9 h-9 rounded-xl overflow-hidden shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-700 shrink-0">
-                <Image src="/logo.png" alt="Худеем Вместе" width={36} height={36} className="object-cover w-full h-full" />
+            <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0 group">
+              <div className="relative w-10 h-10 rounded-2xl overflow-hidden ring-1 ring-zinc-200/80 dark:ring-zinc-700/80 shrink-0 transition-transform group-hover:scale-105 group-active:scale-95">
+                <Image src="/logo.png" alt="Худеем Вместе" width={40} height={40} className="object-cover w-full h-full" />
+                <div className="absolute inset-0 ring-1 ring-inset ring-white/20 rounded-2xl" />
               </div>
               <div className="hidden sm:block">
-                <div className="text-sm font-bold text-zinc-900 dark:text-white leading-none">Худеем Вместе</div>
-                <div className="text-[10px] text-zinc-400">Лето 2026</div>
+                <div className="text-sm font-extrabold text-zinc-900 dark:text-white leading-none tracking-tight">Худеем Вместе</div>
+                <div className="text-[10px] text-zinc-400 mt-0.5 font-medium">Лето 2026</div>
               </div>
             </Link>
 
-            {/* Desktop nav pills — hidden on mobile */}
-            <nav className="hidden sm:flex items-center gap-0.5 bg-zinc-100 dark:bg-zinc-900 rounded-xl p-1 mx-auto">
+            {/* Desktop nav pills */}
+            <nav className="hidden sm:flex items-center gap-0.5 bg-zinc-100/70 dark:bg-zinc-900/70 rounded-2xl p-1 mx-auto ring-1 ring-zinc-200/50 dark:ring-zinc-800/50">
               {allNav.map(({ href, emoji, text }) => {
                 const active = pathname === href || pathname.startsWith(href + "/");
                 return (
                   <Link key={href} href={href}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    className={`relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                       active
-                        ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm"
-                        : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+                        ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm ring-1 ring-zinc-200/60 dark:ring-zinc-700/60"
+                        : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                     }`}>
-                    <span>{emoji}</span>
+                    <span className={active ? "scale-110 transition-transform" : "transition-transform"}>{emoji}</span>
                     <span>{text}</span>
                   </Link>
                 );
@@ -68,20 +69,20 @@ export function NavBar() {
             </nav>
 
             {/* Right side */}
-            <div className="flex items-center gap-2 shrink-0 ml-auto">
+            <div className="flex items-center gap-1.5 shrink-0 ml-auto">
               <ThemeToggle />
 
               {/* User menu */}
               <div className="relative">
                 <button onClick={() => setMenuOpen(!menuOpen)}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
-                  <div className="w-7 h-7 rounded-lg bg-green-100 dark:bg-green-900/40 flex items-center justify-center text-sm">
+                  className="flex items-center gap-2 pl-1.5 pr-2 py-1.5 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-green-100 to-emerald-200 dark:from-green-900/50 dark:to-emerald-900/40 flex items-center justify-center text-sm ring-1 ring-green-200/50 dark:ring-green-800/40">
                     {session.avatar}
                   </div>
-                  <span className="hidden sm:block text-sm font-medium text-zinc-700 dark:text-zinc-300 max-w-[100px] truncate">
+                  <span className="hidden sm:block text-sm font-semibold text-zinc-700 dark:text-zinc-300 max-w-[100px] truncate">
                     {session.displayName}
                   </span>
-                  <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <svg className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
@@ -89,9 +90,13 @@ export function NavBar() {
                 {menuOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                    <div className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg z-20 overflow-hidden">
+                    <div className="absolute right-0 top-full mt-2 w-48 glass border border-zinc-200/60 dark:border-zinc-800/60 rounded-2xl shadow-float z-20 overflow-hidden animate-scale-in origin-top-right">
+                      <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800">
+                        <p className="text-sm font-semibold text-zinc-900 dark:text-white truncate">{session.displayName}</p>
+                        <p className="text-[11px] text-zinc-400">{session.role === "admin" ? "⚙️ Администратор" : "👤 Участник"}</p>
+                      </div>
                       <Link href="/profile" onClick={() => setMenuOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-3 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+                        className="flex items-center gap-2.5 px-4 py-3 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/70 transition-colors">
                         <span>👤</span> Профиль
                       </Link>
                       <div className="h-px bg-zinc-100 dark:bg-zinc-800 mx-2" />
@@ -110,18 +115,16 @@ export function NavBar() {
       </header>
 
       {/* ── Bottom nav — mobile only ── */}
-      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-50 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border-t border-zinc-200 dark:border-zinc-800 safe-bottom">
-        <div className="flex items-stretch h-16">
+      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-50 glass border-t border-zinc-200/60 dark:border-zinc-800/60 safe-bottom">
+        <div className="flex items-stretch h-[68px] px-1">
           {allNav.map(({ href, emoji, text }) => {
             const active = pathname === href || pathname.startsWith(href + "/");
             return (
               <Link key={href} href={href}
-                className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${
-                  active ? "text-green-500" : "text-zinc-400 dark:text-zinc-500"
-                }`}>
-                <span className="text-xl leading-none">{emoji}</span>
-                <span className={`text-[10px] font-medium ${active ? "text-green-500" : "text-zinc-400"}`}>{text}</span>
-                {active && <span className="absolute bottom-0 w-8 h-0.5 bg-green-500 rounded-t-full" />}
+                className="relative flex-1 flex flex-col items-center justify-center gap-1 transition-colors">
+                <span className={`text-xl leading-none transition-all duration-200 ${active ? "scale-110 -translate-y-0.5" : "scale-100 opacity-60"}`}>{emoji}</span>
+                <span className={`text-[10px] font-semibold transition-colors ${active ? "text-green-500" : "text-zinc-400"}`}>{text}</span>
+                {active && <span className="absolute top-1 w-10 h-1 bg-green-500 rounded-full shadow-glow-sm" />}
               </Link>
             );
           })}

@@ -101,66 +101,83 @@ function DashboardInner({ session }: { session: Session }) {
   return (
     <div className="space-y-5">
       {showTip && (
-        <div className="flex items-start gap-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-2xl p-4 animate-fade-in">
+        <div className="flex items-start gap-3 bg-blue-50/80 dark:bg-blue-500/10 backdrop-blur-sm border border-blue-200/70 dark:border-blue-500/20 rounded-2xl p-4 animate-scale-in">
           <span className="text-xl">🌅</span>
           <div className="flex-1">
-            <p className="text-sm font-medium text-blue-800 dark:text-blue-300">Взвешивайся утром, натощак</p>
+            <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Взвешивайся утром, натощак</p>
             <p className="text-xs text-blue-500 dark:text-blue-400 mt-0.5">Без еды и воды — самый точный результат</p>
           </div>
-          <button onClick={() => setShowTip(false)} className="text-blue-400 hover:text-blue-600 text-xl leading-none">×</button>
+          <button onClick={() => setShowTip(false)} className="text-blue-400 hover:text-blue-600 transition-colors text-xl leading-none">×</button>
         </div>
       )}
 
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 p-6 text-white shadow-lg">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,rgba(255,255,255,0.12),transparent_60%)]" />
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-green-500 via-emerald-500 to-emerald-600 p-6 sm:p-7 text-white shadow-glow animate-scale-in">
+        {/* Decorative orbs */}
+        <div className="absolute -top-16 -right-12 w-56 h-56 bg-white/15 rounded-full blur-2xl" />
+        <div className="absolute -bottom-20 -left-10 w-52 h-52 bg-emerald-300/20 rounded-full blur-2xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_30%,rgba(255,255,255,0.18),transparent_55%)]" />
         <div className="relative flex items-start justify-between gap-4">
           <div>
-            <p className="text-green-100 text-sm font-medium mb-1">Привет, {profile.displayName} {profile.avatar}</p>
+            <p className="text-green-50/90 text-sm font-medium mb-2 flex items-center gap-1.5">
+              Привет, {profile.displayName} <span className="text-lg">{profile.avatar}</span>
+            </p>
             <div className="flex items-baseline gap-1.5">
-              <span className="text-5xl font-extrabold tracking-tight">{currentWeight.toFixed(1)}</span>
-              <span className="text-xl font-medium text-green-100">кг</span>
+              <span className="text-6xl font-black tracking-tighter-2 tabular-nums drop-shadow-sm">{currentWeight.toFixed(1)}</span>
+              <span className="text-xl font-semibold text-green-50/80">кг</span>
             </div>
-            <p className="text-green-100 text-xs mt-1">обновлено {formatDate(currentDate)}</p>
-            <div className="mt-3 inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-medium">
+            <p className="text-green-50/70 text-xs mt-1.5">обновлено {formatDate(currentDate)}</p>
+            <div className="mt-4 inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md ring-1 ring-white/25 rounded-full px-3.5 py-1.5 text-sm font-semibold shadow-sm">
               {sc.emoji} {sc.text}
             </div>
           </div>
           <div className="text-right shrink-0">
-            <div className="text-3xl font-bold">{progress.toFixed(0)}%</div>
-            <div className="text-green-100 text-xs mt-0.5">выполнено</div>
-            <div className="text-sm font-medium mt-2">{profile.goalWeight} кг</div>
-            <div className="text-green-100 text-xs">цель</div>
+            {/* Circular progress */}
+            <div className="relative w-20 h-20 ml-auto">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="3" />
+                <circle cx="18" cy="18" r="15.9" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"
+                  strokeDasharray={`${Math.min(100, Math.max(0, progress))} 100`}
+                  style={{ transition: "stroke-dasharray 1s cubic-bezier(0.16,1,0.3,1)" }} />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-xl font-black tabular-nums">{progress.toFixed(0)}%</span>
+              </div>
+            </div>
+            <div className="text-sm font-semibold mt-2.5">{profile.goalWeight} кг</div>
+            <div className="text-green-50/70 text-xs">цель</div>
           </div>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard icon="🎯" label="До цели" value={`${Math.max(0, currentWeight - profile.goalWeight).toFixed(1)} кг`} sub="осталось" />
-        <StatCard icon="📅" label="Дней" value={String(rem)} sub="до финала" />
-        <StatCard icon="📉" label="В неделю" value={weeklyReq > 0 ? `${weeklyReq.toFixed(2)} кг` : "—"} sub="нужно терять" />
-        <StatCard icon="🏋️" label="ИМТ" value={bmi > 0 ? bmi.toFixed(1) : "—"} sub={bmiCat.labelShort} valueColor={bmiCat.color} />
+        <StatCard icon="🎯" label="До цели"  value={`${Math.max(0, currentWeight - profile.goalWeight).toFixed(1)} кг`} sub="осталось" delay={0} />
+        <StatCard icon="📅" label="Дней"     value={String(rem)} sub="до финала" delay={60} />
+        <StatCard icon="📉" label="В неделю" value={weeklyReq > 0 ? `${weeklyReq.toFixed(2)} кг` : "—"} sub="нужно терять" delay={120} />
+        <StatCard icon="🏋️" label="ИМТ"      value={bmi > 0 ? bmi.toFixed(1) : "—"} sub={bmiCat.labelShort} valueColor={bmiCat.color} delay={180} />
       </div>
 
       {/* Progress bar */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-card dark:shadow-none space-y-3">
+      <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-800/70 rounded-3xl p-5 shadow-soft dark:shadow-none space-y-3">
         <div className="flex justify-between items-center">
-          <span className="text-sm font-semibold text-zinc-900 dark:text-white">Прогресс</span>
-          <span className="text-sm font-bold text-green-500">{progress.toFixed(1)}%</span>
+          <span className="text-sm font-bold text-zinc-900 dark:text-white">Прогресс к цели</span>
+          <span className="text-sm font-black text-green-500 tabular-nums">{progress.toFixed(1)}%</span>
         </div>
-        <div className="h-3 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-          <div className="h-full rounded-full animate-progress"
+        <div className="relative h-3.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+          <div className="h-full rounded-full animate-progress relative overflow-hidden"
             style={{ "--p-width": `${progress}%`, width: `${progress}%`,
-              background: "linear-gradient(90deg,#16a34a,#22c55e 60%,#4ade80)" } as React.CSSProperties} />
+              background: "linear-gradient(90deg,#16a34a,#22c55e 60%,#4ade80)" } as React.CSSProperties}>
+            <div className="absolute inset-0 shimmer" />
+          </div>
         </div>
-        <div className="flex justify-between text-xs text-zinc-400">
+        <div className="flex justify-between text-xs text-zinc-400 font-medium">
           <span>{profile.startWeight} кг</span>
           {Math.abs(deviation) > 0.3
             ? deviation > 0
-              ? <span className="text-red-500">+{deviation.toFixed(1)} кг от идеала</span>
-              : <span className="text-green-500">−{Math.abs(deviation).toFixed(1)} кг опережаешь! 🚀</span>
-            : <span className="text-green-500">Идеальный темп ✓</span>}
+              ? <span className="text-red-500 font-semibold">+{deviation.toFixed(1)} кг от идеала</span>
+              : <span className="text-green-500 font-semibold">−{Math.abs(deviation).toFixed(1)} кг опережаешь! 🚀</span>
+            : <span className="text-green-500 font-semibold">Идеальный темп ✓</span>}
           <span>{profile.goalWeight} кг</span>
         </div>
       </div>
@@ -174,28 +191,29 @@ function DashboardInner({ session }: { session: Session }) {
   );
 }
 
-function StatCard({ icon, label, value, sub, valueColor }: { icon: string; label: string; value: string; sub: string; valueColor?: string }) {
+function StatCard({ icon, label, value, sub, valueColor, delay = 0 }: { icon: string; label: string; value: string; sub: string; valueColor?: string; delay?: number }) {
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-card dark:shadow-none">
-      <div className="flex justify-between items-center mb-1">
-        <span className="text-xs font-medium text-zinc-500">{label}</span>
+    <div className="card-hover bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-800/70 rounded-2xl p-4 shadow-card dark:shadow-none hover:shadow-soft animate-slide-up opacity-0"
+      style={{ animationDelay: `${delay}ms` }}>
+      <div className="flex justify-between items-center mb-1.5">
+        <span className="text-xs font-semibold text-zinc-500">{label}</span>
         <span className="text-base">{icon}</span>
       </div>
-      <p className="text-xl font-bold text-zinc-900 dark:text-white" style={valueColor ? { color: valueColor } : {}}>
+      <p className="text-xl font-black text-zinc-900 dark:text-white tabular-nums tracking-tight" style={valueColor ? { color: valueColor } : {}}>
         {value}
       </p>
-      <p className="text-xs text-zinc-400 mt-0.5">{sub}</p>
+      <p className="text-xs text-zinc-400 mt-0.5 font-medium">{sub}</p>
     </div>
   );
 }
 
 function PageSkeleton() {
   return (
-    <div className="space-y-5 animate-pulse">
-      <div className="h-36 bg-zinc-200 dark:bg-zinc-800 rounded-2xl" />
-      <div className="grid grid-cols-4 gap-3">{[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-zinc-200 dark:bg-zinc-800 rounded-2xl" />)}</div>
-      <div className="h-12 bg-zinc-200 dark:bg-zinc-800 rounded-2xl" />
-      <div className="h-72 bg-zinc-200 dark:bg-zinc-800 rounded-2xl" />
+    <div className="space-y-5">
+      <div className="h-44 bg-zinc-200/70 dark:bg-zinc-800/70 rounded-3xl shimmer" />
+      <div className="grid grid-cols-4 gap-3">{[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-zinc-200/70 dark:bg-zinc-800/70 rounded-2xl shimmer" />)}</div>
+      <div className="h-16 bg-zinc-200/70 dark:bg-zinc-800/70 rounded-3xl shimmer" />
+      <div className="h-72 bg-zinc-200/70 dark:bg-zinc-800/70 rounded-3xl shimmer" />
     </div>
   );
 }

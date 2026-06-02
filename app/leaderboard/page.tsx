@@ -73,48 +73,59 @@ function BoardInner({ session }: { session: Session }) {
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-extrabold text-zinc-900 dark:text-white">🏆 Таблица лидеров</h2>
-          <p className="text-zinc-400 text-sm mt-1">Кто сколько сбросил</p>
+          <h2 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tighter-2">🏆 Таблица лидеров</h2>
+          <p className="text-zinc-400 text-sm mt-1">Кто сколько сбросил · {rows.length} участников</p>
         </div>
-        <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-1">
+        <div className="flex items-center gap-1 bg-zinc-100/70 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/60 dark:border-zinc-800/60 rounded-2xl p-1">
           {([["alltime", "За всё время"], ["week", "За неделю"]] as [Filter, string][]).map(([val, label]) => (
             <button key={val} onClick={() => setFilter(val)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === val ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200"}`}>
+              className={`px-4 py-1.5 rounded-xl text-sm font-semibold transition-all ${filter === val ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm ring-1 ring-zinc-200/60 dark:ring-zinc-700/60" : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200"}`}>
               {label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Top-3 */}
+      {/* Top-3 podium */}
       {!loading && rows.length >= 1 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {rows.slice(0, 3).map((row, i) => (
             <div key={row.user.id}
-              className={`relative overflow-hidden rounded-2xl p-5 border ${i === 0 ? "bg-gradient-to-br from-yellow-400/20 to-amber-500/10 border-yellow-400/30 dark:border-yellow-500/20" : i === 1 ? "bg-gradient-to-br from-zinc-300/20 to-zinc-400/10 border-zinc-300/30 dark:border-zinc-600/30" : "bg-gradient-to-br from-orange-400/10 to-orange-500/5 border-orange-400/20 dark:border-orange-700/20"}`}>
-              <div className="text-2xl mb-2">{MEDALS[i]}</div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-white/50 dark:bg-zinc-800 flex items-center justify-center text-xl shadow-sm">{row.user.profile.avatar}</div>
-                <div>
-                  <p className="font-semibold text-zinc-900 dark:text-white text-sm">{row.user.profile.displayName}</p>
-                  {row.isNewcomer && <span className="text-[10px] text-blue-500">новый участник</span>}
+              className={`card-hover relative overflow-hidden rounded-3xl p-5 border backdrop-blur-sm animate-slide-up opacity-0 ${
+                i === 0 ? "bg-gradient-to-br from-yellow-400/25 to-amber-500/10 border-yellow-400/40 dark:border-yellow-500/30 sm:-translate-y-2 shadow-glow"
+                : i === 1 ? "bg-gradient-to-br from-zinc-300/25 to-zinc-400/10 border-zinc-300/40 dark:border-zinc-600/40 shadow-soft"
+                : "bg-gradient-to-br from-orange-400/15 to-orange-500/5 border-orange-400/30 dark:border-orange-700/30 shadow-soft"}`}
+              style={{ animationDelay: `${i * 80}ms` }}>
+              {/* Glow orb */}
+              <div className={`absolute -top-8 -right-6 w-24 h-24 rounded-full blur-2xl opacity-50 ${i === 0 ? "bg-yellow-400" : i === 1 ? "bg-zinc-400" : "bg-orange-400"}`} />
+              <div className="relative">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-3xl drop-shadow-sm">{MEDALS[i]}</div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">#{i + 1}</span>
                 </div>
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="w-11 h-11 rounded-2xl bg-white/60 dark:bg-zinc-800 flex items-center justify-center text-2xl shadow-sm ring-1 ring-white/40 dark:ring-zinc-700">{row.user.profile.avatar}</div>
+                  <div>
+                    <p className="font-bold text-zinc-900 dark:text-white text-sm">{row.user.profile.displayName}</p>
+                    {row.isNewcomer && <span className="text-[10px] text-blue-500 font-medium">новый участник</span>}
+                  </div>
+                </div>
+                <div className="text-4xl font-black text-green-500 tabular-nums tracking-tighter-2">{row.lost >= 0 ? "−" : "+"}{Math.abs(row.lost).toFixed(1)}<span className="text-lg font-bold ml-1">кг</span></div>
+                <div className="text-xs text-zinc-400 mt-0.5 font-medium">{row.lostPct.toFixed(1)}% от стартового</div>
+                <div className="mt-3 h-1.5 bg-zinc-200/70 dark:bg-zinc-700/70 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-400" style={{ width: `${Math.min(100, row.goalPct)}%`, transition: "width 1s cubic-bezier(0.16,1,0.3,1)" }} />
+                </div>
+                <div className="text-[10px] text-zinc-400 mt-1 font-medium">{row.goalPct.toFixed(0)}% к цели</div>
               </div>
-              <div className="text-3xl font-extrabold text-green-500">{row.lost >= 0 ? "−" : "+"}{Math.abs(row.lost).toFixed(1)} кг</div>
-              <div className="text-xs text-zinc-400 mt-0.5">{row.lostPct.toFixed(1)}% от стартового</div>
-              <div className="mt-3 h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
-                <div className="h-full rounded-full bg-green-500" style={{ width: `${Math.min(100, row.goalPct)}%`, transition: "width .7s" }} />
-              </div>
-              <div className="text-[10px] text-zinc-400 mt-1">{row.goalPct.toFixed(0)}% к цели</div>
             </div>
           ))}
         </div>
       )}
 
       {/* Full table */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-card dark:shadow-none">
+      <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-800/70 rounded-3xl overflow-hidden shadow-soft dark:shadow-none">
         <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
-          <span className="text-sm font-semibold text-zinc-900 dark:text-white">Все участники · {rows.length}</span>
+          <span className="text-sm font-bold text-zinc-900 dark:text-white">Все участники · {rows.length}</span>
         </div>
         {loading ? (
           <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin" /></div>

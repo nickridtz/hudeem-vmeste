@@ -95,12 +95,12 @@ function ChatInner({ session }: { session: Session }) {
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] sm:h-[calc(100vh-10rem)] max-w-2xl mx-auto">
       <div className="mb-4 flex-shrink-0">
-        <h2 className="text-2xl font-extrabold text-zinc-900 dark:text-white">💬 Общий чат</h2>
+        <h2 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tighter-2">💬 Общий чат</h2>
         <p className="text-zinc-400 text-sm mt-1">Общайся и следи за прогрессом команды</p>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-card dark:shadow-none p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-800/70 rounded-3xl shadow-soft dark:shadow-none p-4 space-y-4">
         {messages.length === 0 && (
           <div className="text-center py-16 text-zinc-400 text-sm">
             <div className="text-4xl mb-3">💬</div>
@@ -138,10 +138,10 @@ function ChatInner({ session }: { session: Session }) {
                     {!isMe && (
                       <span className="text-[11px] text-zinc-400 px-1">{m.display_name}</span>
                     )}
-                    <div className={`px-3.5 py-2 rounded-2xl text-sm ${
+                    <div className={`px-3.5 py-2 rounded-2xl text-sm shadow-sm ${
                       isMe
-                        ? "bg-green-500 text-white rounded-br-sm"
-                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-bl-sm"
+                        ? "bg-gradient-to-br from-green-500 to-emerald-500 text-white rounded-br-md"
+                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-bl-md"
                     }`}>
                       {m.text}
                     </div>
@@ -169,7 +169,7 @@ function ChatInner({ session }: { session: Session }) {
         <button
           onClick={send}
           disabled={!text.trim() || sending}
-          className="bg-green-500 hover:bg-green-400 disabled:opacity-50 text-white rounded-xl px-4 py-3 transition-colors shadow-sm"
+          className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 disabled:opacity-50 text-white rounded-xl px-4 py-3 transition-all shadow-glow-sm hover:shadow-glow active:scale-95"
         >
           {sending
             ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
