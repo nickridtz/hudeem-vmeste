@@ -8,7 +8,26 @@ import {
   loadGoal, saveGoal, totalCalories, macros, FoodEntry,
 } from "@/lib/caloriesStorage";
 import { formatDate, todayISO } from "@/lib/calculations";
-import type { Session } from "@/lib/auth";
+import { getUserById } from "@/lib/auth";
+import type { Session, UserProfile } from "@/lib/auth";
+
+// ── КБЖУ / Mifflin-St Jeor ──────────────────────────────
+function calcKBJU(profile: UserProfile) {
+  const w = profile.startWeight, h = profile.heightCm, a = profile.age;
+  const bmr = profile.gender === "male"
+    ? 10 * w + 6.25 * h - 5 * a + 5
+    : 10 * w + 6.25 * h - 5 * a - 161;
+  const tdee  = Math.round(bmr * profile.activityLevel);
+  const cut   = Math.max(1200, tdee - 500);
+  return {
+    bmr:     Math.round(bmr),
+    tdee,
+    cut,
+    protein: Math.round(w * 1.8),
+    fat:     Math.round(cut * 0.28 / 9),
+    carbs:   Math.round((cut - w * 1.8 * 4 - cut * 0.28) / 4),
+  };
+}
 
 const BarcodeScanner = dynamic(() => import("@/components/BarcodeScanner"), { ssr: false });
 
@@ -34,25 +53,45 @@ async function fetchProduct(barcode: string): Promise<ProductInfo | null> {
 
 function CaloriesInner({ session }: { session: Session }) {
   const uid = session.userId;
-  const [entries, setEntries]       = useState<FoodEntry[]>([]);
-  const [goal, setGoal]             = useState(1800);
-  const [goalInput, setGoalInput]   = useState("1800");
-  const [date, setDate]             = useState(todayISO());
+  const [entries, setEntries]         = useState<FoodEntry[]>([]);
+  const [goal, setGoal]               = useState(1800);
+  const [goalInput, setGoalInput]     = useState("1800");
+  const [date, setDate]               = useState(todayISO());
   const [showScanner, setShowScanner] = useState(false);
-  const [manual, setManual]         = useState("");
-  const [product, setProduct]       = useState<ProductInfo | null>(null);
-  const [portion, setPortion]       = useState("100");
-  const [lookupErr, setLookupErr]   = useState<string | null>(null);
-  const [lookupLoad, setLookupLoad] = useState(false);
+  const [manual, setManual]           = useState("");
+  const [product, setProduct]         = useState<ProductInfo | null>(null);
+  const [portion, setPortion]         = useState("100");
+  const [lookupErr, setLookupErr]     = useState<string | null>(null);
+  const [lookupLoad, setLookupLoad]   = useState(false);
+  const [glasses, setGlasses]         = useState(0);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const WATER_GOAL = 8;
 
   useEffect(() => {
     (async () => {
-      const [entries, g] = await Promise.all([loadFoodEntries(uid), loadGoal(uid)]);
-      setEntries(entries);
+      const [ents, g, waterRes, user] = await Promise.all([
+        loadFoodEntries(uid),
+        loadGoal(uid),
+        fetch(`/api/water?userId=${uid}&date=${todayISO()}`).then(r => r.json()),
+        getUserById(uid),
+      ]);
+      setEntries(ents);
       setGoal(g.calories);
       setGoalInput(String(g.calories));
+      setGlasses(waterRes.glasses ?? 0);
+      if (user) setUserProfile(user.profile);
     })();
   }, [uid]);
+
+  async function setWater(n: number) {
+    const v = Math.max(0, Math.min(20, n));
+    setGlasses(v);
+    await fetch("/api/water", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: uid, date: todayISO(), glasses: v }),
+    });
+  }
 
   const dayEntries = entries.filter((e) => e.date === date);
   const dayKcal    = totalCalories(dayEntries);
@@ -209,6 +248,82 @@ function CaloriesInner({ session }: { session: Session }) {
           </div>
         )}
       </div>
+
+      {/* ── Вода ───────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-card dark:shadow-none space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-zinc-900 dark:text-white text-base">💧 Вода</h3>
+            <p className="text-xs text-zinc-400">Цель: {WATER_GOAL} стаканов · {glasses * 250} мл выпито</p>
+          </div>
+          <span className={`text-sm font-bold ${glasses >= WATER_GOAL ? "text-green-500" : "text-blue-500"}`}>
+            {glasses}/{WATER_GOAL}
+          </span>
+        </div>
+        <div className="flex gap-1.5 flex-wrap">
+          {Array.from({ length: WATER_GOAL }).map((_, i) => (
+            <button key={i} onClick={() => setWater(i < glasses ? i : i + 1)}
+              className={`w-10 h-10 rounded-xl text-xl transition-all ${
+                i < glasses
+                  ? "bg-blue-100 dark:bg-blue-500/20 text-blue-500"
+                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-600"
+              }`}>💧</button>
+          ))}
+          {glasses > WATER_GOAL && (
+            <span className="flex items-center text-sm text-blue-500 font-medium">+{glasses - WATER_GOAL}</span>
+          )}
+        </div>
+        <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+          <div className="h-full rounded-full bg-blue-400 transition-all duration-500"
+            style={{ width: `${Math.min(100, (glasses / WATER_GOAL) * 100)}%` }} />
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => setWater(glasses - 1)}
+            className="flex-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-xl py-2 text-sm font-medium transition-colors">
+            −1 стакан
+          </button>
+          <button onClick={() => setWater(glasses + 1)}
+            className="flex-1 bg-blue-500 hover:bg-blue-400 text-white rounded-xl py-2 text-sm font-medium transition-colors">
+            +1 стакан
+          </button>
+        </div>
+      </div>
+
+      {/* ── КБЖУ Калькулятор ───────────────────────────────── */}
+      {userProfile && (() => {
+        const kbju = calcKBJU(userProfile);
+        return (
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-card dark:shadow-none space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-semibold text-zinc-900 dark:text-white text-base">🧮 Норма КБЖУ</h3>
+                <p className="text-xs text-zinc-400">По формуле Миффлина · настрой в профиле</p>
+              </div>
+              <button onClick={async () => {
+                setGoal(kbju.cut); setGoalInput(String(kbju.cut));
+                await saveGoal(uid, { calories: kbju.cut });
+              }} className="text-xs bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 font-medium px-3 py-1.5 rounded-lg hover:bg-green-200 dark:hover:bg-green-500/30 transition-colors">
+                Применить как цель
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                ["🔥 Базовый обмен", `${kbju.bmr} ккал`, "text-orange-500"],
+                ["⚡ С учётом активности", `${kbju.tdee} ккал`, "text-yellow-500"],
+                ["🎯 На похудение", `${kbju.cut} ккал`, "text-green-500"],
+                ["💪 Белки", `${kbju.protein} г`, "text-blue-500"],
+                ["🥑 Жиры", `${kbju.fat} г`, "text-amber-500"],
+                ["🌾 Углеводы", `${kbju.carbs} г`, "text-orange-400"],
+              ].map(([label, val, cls]) => (
+                <div key={String(label)} className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3">
+                  <p className="text-xs text-zinc-400 mb-0.5">{label}</p>
+                  <p className={`text-base font-bold ${cls}`}>{val}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Day entries */}
       {dayEntries.length > 0 ? (

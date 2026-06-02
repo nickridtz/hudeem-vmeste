@@ -11,6 +11,7 @@ const NAV = [
   { href: "/dashboard",   emoji: "📊", text: "Мой вес"  },
   { href: "/calories",    emoji: "🍎", text: "Калории"  },
   { href: "/leaderboard", emoji: "🏆", text: "Лидеры"   },
+  { href: "/chat",        emoji: "💬", text: "Чат"      },
 ];
 
 export function NavBar() {

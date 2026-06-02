@@ -73,7 +73,23 @@ function DashboardInner({ session }: { session: Session }) {
       setEntries(await updateEntry(session.userId, editEntry.id, weight, date));
       setEditEntry(null);
     } else {
-      setEntries(await addEntry(session.userId, { date, weight }));
+      const newEntries = await addEntry(session.userId, { date, weight });
+      setEntries(newEntries);
+      // Автопост в чат
+      const prev = sorted.length > 0 ? sorted[sorted.length - 1] : null;
+      const diff = prev ? weight - prev.weight : null;
+      const diffStr = diff !== null
+        ? diff < -0.05 ? ` (−${Math.abs(diff).toFixed(1)} кг 🔥)` : diff > 0.05 ? ` (+${diff.toFixed(1)} кг)` : ""
+        : "";
+      fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: session.userId, displayName: session.displayName, avatar: session.avatar,
+          text: `${session.avatar} ${session.displayName} отметил(а) вес: ${weight.toFixed(1)} кг${diffStr}`,
+          isSystem: true,
+        }),
+      });
     }
   }
 

@@ -10,6 +10,9 @@ export interface UserProfile {
   goalWeight: number;
   startDate: string;
   goalDate: string;
+  age: number;
+  gender: "male" | "female";
+  activityLevel: number; // 1.2 – 1.9
 }
 
 export interface User {
@@ -40,13 +43,16 @@ function rowToUser(r: any): User {
     role: r.role,
     createdAt: r.created_at,
     profile: {
-      displayName: r.display_name,
-      avatar: r.avatar,
-      heightCm: Number(r.height_cm),
-      startWeight: Number(r.start_weight),
-      goalWeight: Number(r.goal_weight),
-      startDate: r.start_date,
-      goalDate: r.goal_date,
+      displayName:   r.display_name,
+      avatar:        r.avatar,
+      heightCm:      Number(r.height_cm),
+      startWeight:   Number(r.start_weight),
+      goalWeight:    Number(r.goal_weight),
+      startDate:     r.start_date,
+      goalDate:      r.goal_date,
+      age:           Number(r.age ?? 25),
+      gender:        (r.gender ?? "male") as "male" | "female",
+      activityLevel: Number(r.activity_level ?? 1.55),
     },
   };
 }
@@ -151,13 +157,16 @@ export async function updateUserProfile(
   profile: Partial<UserProfile>
 ): Promise<void> {
   const update: Record<string, unknown> = {};
-  if (profile.displayName !== undefined) update.display_name = profile.displayName;
-  if (profile.avatar      !== undefined) update.avatar       = profile.avatar;
-  if (profile.heightCm    !== undefined) update.height_cm    = profile.heightCm;
-  if (profile.startWeight !== undefined) update.start_weight = profile.startWeight;
-  if (profile.goalWeight  !== undefined) update.goal_weight  = profile.goalWeight;
-  if (profile.startDate   !== undefined) update.start_date   = profile.startDate;
-  if (profile.goalDate    !== undefined) update.goal_date    = profile.goalDate;
+  if (profile.displayName   !== undefined) update.display_name    = profile.displayName;
+  if (profile.avatar        !== undefined) update.avatar          = profile.avatar;
+  if (profile.heightCm      !== undefined) update.height_cm       = profile.heightCm;
+  if (profile.startWeight   !== undefined) update.start_weight    = profile.startWeight;
+  if (profile.goalWeight    !== undefined) update.goal_weight     = profile.goalWeight;
+  if (profile.startDate     !== undefined) update.start_date      = profile.startDate;
+  if (profile.goalDate      !== undefined) update.goal_date       = profile.goalDate;
+  if (profile.age           !== undefined) update.age             = profile.age;
+  if (profile.gender        !== undefined) update.gender          = profile.gender;
+  if (profile.activityLevel !== undefined) update.activity_level  = profile.activityLevel;
   await supabase.from("users").update(update).eq("id", id);
 }
 

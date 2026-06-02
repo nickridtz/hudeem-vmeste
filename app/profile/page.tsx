@@ -85,6 +85,24 @@ function ProfileInner({ session }: { session: Session }) {
           <div className="space-y-1.5"><label className={L}>Целевой вес</label><input type="number" value={profile.goalWeight} onChange={(e) => setProfile({ ...profile, goalWeight: +e.target.value })} step="0.1" className={I} /></div>
           <div className="space-y-1.5"><label className={L}>Дата старта</label><input type="date" value={profile.startDate} onChange={(e) => setProfile({ ...profile, startDate: e.target.value })} className={I} /></div>
           <div className="space-y-1.5"><label className={L}>Дата цели</label><input type="date" value={profile.goalDate} onChange={(e) => setProfile({ ...profile, goalDate: e.target.value })} className={I} /></div>
+          <div className="space-y-1.5"><label className={L}>Возраст</label><input type="number" value={profile.age ?? 25} onChange={(e) => setProfile({ ...profile, age: +e.target.value })} min="10" max="100" className={I} /></div>
+          <div className="space-y-1.5">
+            <label className={L}>Пол</label>
+            <select value={profile.gender ?? "male"} onChange={(e) => setProfile({ ...profile, gender: e.target.value as "male" | "female" })} className={I}>
+              <option value="male">Мужской</option>
+              <option value="female">Женский</option>
+            </select>
+          </div>
+          <div className="space-y-1.5 col-span-2">
+            <label className={L}>Уровень активности</label>
+            <select value={profile.activityLevel ?? 1.55} onChange={(e) => setProfile({ ...profile, activityLevel: +e.target.value })} className={I}>
+              <option value={1.2}>🪑 Сидячий образ жизни</option>
+              <option value={1.375}>🚶 Лёгкая активность (1–3 дня/нед)</option>
+              <option value={1.55}>🏃 Умеренная активность (3–5 дней/нед)</option>
+              <option value={1.725}>💪 Высокая активность (6–7 дней/нед)</option>
+              <option value={1.9}>🔥 Очень высокая (спорт + физ. работа)</option>
+            </select>
+          </div>
         </div>
         <button type="submit" disabled={saving} className="w-full bg-green-500 hover:bg-green-400 disabled:opacity-60 text-white font-semibold rounded-xl py-2.5 text-sm transition-colors shadow-sm">
           {saved ? "✓ Сохранено!" : saving ? "Сохраняю…" : "Сохранить профиль"}
