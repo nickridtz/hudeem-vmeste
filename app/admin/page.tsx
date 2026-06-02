@@ -13,6 +13,7 @@ const DEFAULT_PROFILE: UserProfile = {
   displayName: "", avatar: "👤", heightCm: 170,
   startWeight: 100, goalWeight: 80,
   startDate: "2026-06-01", goalDate: "2026-08-31",
+  age: 25, gender: "male", activityLevel: 1.55,
 };
 
 function AdminInner({ session }: { session: Session }) {
