@@ -96,11 +96,11 @@ function ProfileInner({ session }: { session: Session }) {
           <div className="space-y-1.5 col-span-2">
             <label className={L}>Уровень активности</label>
             <select value={profile.activityLevel ?? 1.55} onChange={(e) => setProfile({ ...profile, activityLevel: +e.target.value })} className={I}>
-              <option value={1.2}>🪑 Сидячий образ жизни</option>
-              <option value={1.375}>🚶 Лёгкая активность (1–3 дня/нед)</option>
+              <option value={1.20}>🪑 Сидячий образ жизни</option>
+              <option value={1.40}>🚶 Лёгкая активность (1–3 дня/нед)</option>
               <option value={1.55}>🏃 Умеренная активность (3–5 дней/нед)</option>
-              <option value={1.725}>💪 Высокая активность (6–7 дней/нед)</option>
-              <option value={1.9}>🔥 Очень высокая (спорт + физ. работа)</option>
+              <option value={1.75}>💪 Высокая активность (6–7 дней/нед)</option>
+              <option value={1.90}>🔥 Очень высокая (спорт + физ. работа)</option>
             </select>
           </div>
         </div>
