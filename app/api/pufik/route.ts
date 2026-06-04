@@ -41,6 +41,48 @@ async function postAsPufik(text: string) {
   );
 }
 
+/** Сводка таблицы лидеров для контекста Пуфика. */
+async function buildLeaderboard(): Promise<string> {
+  try {
+    const rows = await sql(`
+      SELECT u.display_name,
+             u.goal_weight,
+             fe.weight AS first_weight,
+             le.weight AS latest_weight
+      FROM users u
+      LEFT JOIN LATERAL (
+        SELECT weight FROM weight_entries WHERE user_id = u.id ORDER BY date ASC LIMIT 1
+      ) fe ON true
+      LEFT JOIN LATERAL (
+        SELECT weight FROM weight_entries WHERE user_id = u.id ORDER BY date DESC LIMIT 1
+      ) le ON true
+    `) as { display_name: string; goal_weight: number; first_weight: number | null; latest_weight: number | null }[];
+
+    const ranked = rows
+      .filter(r => r.first_weight != null && r.latest_weight != null)
+      .map(r => ({
+        name:    r.display_name,
+        current: Number(r.latest_weight),
+        goal:    Number(r.goal_weight),
+        lost:    Number(r.first_weight) - Number(r.latest_weight),
+      }))
+      .sort((a, b) => b.lost - a.lost);
+
+    if (ranked.length === 0) return "Пока никто не записал вес — таблица лидеров пустая.";
+
+    return ranked
+      .map((r, i) => {
+        const medal = ["🥇", "🥈", "🥉"][i] ?? `${i + 1}.`;
+        const lostStr = r.lost >= 0 ? `сбросил(а) ${r.lost.toFixed(1)} кг` : `набрал(а) ${Math.abs(r.lost).toFixed(1)} кг`;
+        return `${medal} ${r.name}: ${lostStr} (сейчас ${r.current.toFixed(1)} кг, цель ${r.goal.toFixed(1)} кг)`;
+      })
+      .join("\n");
+  } catch (e) {
+    console.error("[pufik] buildLeaderboard error:", e);
+    return "";
+  }
+}
+
 export async function POST(req: NextRequest) {
   if (!GROQ_KEY) {
     console.error("[pufik] GROQ_API_KEY not set");
@@ -59,9 +101,10 @@ export async function POST(req: NextRequest) {
       else if (diff != null && diff > 0.05)  situation += ` Это на ${diff.toFixed(1)} кг больше, чем в прошлый раз — нужно мягко подбодрить, без осуждения.`;
       else if (diff != null)                  situation += ` Вес держится на том же уровне.`;
 
+      const board = await buildLeaderboard();
       const reply = await callGroq([
-        { role: "system", content: PERSONA },
-        { role: "user", content: `${situation}\nНапиши короткое сообщение поддержки в общий чат для ${displayName}.` },
+        { role: "system", content: `${PERSONA}\n\nТекущая таблица лидеров (по сброшенным кг):\n${board}` },
+        { role: "user", content: `${situation}\nНапиши короткое сообщение поддержки в общий чат для ${displayName}. Если уместно — можешь упомянуть его место в таблице лидеров или подзадорить.` },
       ]);
       if (reply) await postAsPufik(reply);
       return NextResponse.json({ ok: true });
@@ -81,9 +124,10 @@ export async function POST(req: NextRequest) {
         .map(m => `${m.display_name}: ${m.text}`)
         .join("\n");
 
+      const board = await buildLeaderboard();
       const reply = await callGroq([
-        { role: "system", content: PERSONA + `\n\nНедавние сообщения в чате:\n${history}` },
-        { role: "user", content: `${displayName} обращается к тебе: "${question}"\nОтветь ему как Пуфик.` },
+        { role: "system", content: `${PERSONA}\n\nТекущая таблица лидеров (по сброшенным кг):\n${board}\n\nНедавние сообщения в чате:\n${history}` },
+        { role: "user", content: `${displayName} обращается к тебе: "${question}"\nОтветь ему как Пуфик. Если спрашивают про таблицу лидеров, у кого какой прогресс, кто первый/последний — отвечай по данным таблицы выше.` },
       ]);
       if (reply) await postAsPufik(reply);
       return NextResponse.json({ ok: true });
