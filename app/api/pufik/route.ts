@@ -1,94 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
-
-const sql = neon(process.env.DATABASE_URL!);
-const GROQ_KEY = process.env.GROQ_API_KEY!;
-const MODEL = "llama-3.3-70b-versatile";
-
-const PERSONA = `Ты — Пуфик, добрый весёлый пёсик-талисман приложения для похудения «Худеем Вместе».
-Характер: тёплый, заботливый, с лёгким юмором, искренне болеешь за каждого участника.
-Стиль речи: по-русски, дружелюбно, можешь иногда вставить собачьи словечки (гав, тяв, виляю хвостом) и эмодзи (🐶🐾🦴❤️🔥), но в меру — 1-2 на сообщение.
-ВАЖНО: отвечай ОЧЕНЬ КОРОТКО — 1-2 предложения, максимум 3. Без markdown, без списков. Обращайся к человеку по имени.`;
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function callGroq(messages: any[]): Promise<string | null> {
-  try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${GROQ_KEY}`,
-      },
-      body: JSON.stringify({ model: MODEL, messages, temperature: 0.85, max_tokens: 220 }),
-    });
-    if (!res.ok) {
-      console.error("[pufik] Groq error:", res.status, await res.text());
-      return null;
-    }
-    const json = await res.json();
-    return json.choices?.[0]?.message?.content?.trim() ?? null;
-  } catch (e) {
-    console.error("[pufik] callGroq exception:", e);
-    return null;
-  }
-}
-
-async function postAsPufik(text: string) {
-  await sql(
-    `INSERT INTO chat_messages (user_id, display_name, avatar, text, is_system)
-     VALUES (NULL, 'Пуфик', '🐶', $1, false)`,
-    [text]
-  );
-}
-
-/** Сводка таблицы лидеров для контекста Пуфика. */
-async function buildLeaderboard(): Promise<string> {
-  try {
-    const rows = await sql(`
-      SELECT u.display_name,
-             u.goal_weight,
-             fe.weight AS first_weight,
-             le.weight AS latest_weight
-      FROM users u
-      LEFT JOIN LATERAL (
-        SELECT weight FROM weight_entries WHERE user_id = u.id ORDER BY date ASC LIMIT 1
-      ) fe ON true
-      LEFT JOIN LATERAL (
-        SELECT weight FROM weight_entries WHERE user_id = u.id ORDER BY date DESC LIMIT 1
-      ) le ON true
-    `) as { display_name: string; goal_weight: number; first_weight: number | null; latest_weight: number | null }[];
-
-    const ranked = rows
-      .filter(r => r.first_weight != null && r.latest_weight != null)
-      .map(r => ({
-        name:    r.display_name,
-        current: Number(r.latest_weight),
-        goal:    Number(r.goal_weight),
-        lost:    Number(r.first_weight) - Number(r.latest_weight),
-      }))
-      .sort((a, b) => b.lost - a.lost);
-
-    if (ranked.length === 0) return "Пока никто не записал вес — таблица лидеров пустая.";
-
-    return ranked
-      .map((r, i) => {
-        const medal = ["🥇", "🥈", "🥉"][i] ?? `${i + 1}.`;
-        const lostStr = r.lost >= 0 ? `сбросил(а) ${r.lost.toFixed(1)} кг` : `набрал(а) ${Math.abs(r.lost).toFixed(1)} кг`;
-        return `${medal} ${r.name}: ${lostStr} (сейчас ${r.current.toFixed(1)} кг, цель ${r.goal.toFixed(1)} кг)`;
-      })
-      .join("\n");
-  } catch (e) {
-    console.error("[pufik] buildLeaderboard error:", e);
-    return "";
-  }
-}
+import { PERSONA, callGroq, postAsPufik, buildLeaderboard, sql } from "@/lib/pufik";
 
 export async function POST(req: NextRequest) {
-  if (!GROQ_KEY) {
-    console.error("[pufik] GROQ_API_KEY not set");
-    return NextResponse.json({ ok: false, error: "no key" });
-  }
-
   const body = await req.json();
   const type = body.type as "weight" | "ask";
 
@@ -98,13 +11,13 @@ export async function POST(req: NextRequest) {
       const { displayName, weight, diff } = body as { displayName: string; weight: number; diff: number | null };
       let situation = `${displayName} только что записал(а) свой вес: ${weight} кг.`;
       if (diff != null && diff < -0.05)      situation += ` Это на ${Math.abs(diff).toFixed(1)} кг меньше, чем в прошлый раз — прогресс!`;
-      else if (diff != null && diff > 0.05)  situation += ` Это на ${diff.toFixed(1)} кг больше, чем в прошлый раз — нужно мягко подбодрить, без осуждения.`;
+      else if (diff != null && diff > 0.05)  situation += ` Это на ${diff.toFixed(1)} кг больше — нужно мягко подбодрить, без осуждения.`;
       else if (diff != null)                  situation += ` Вес держится на том же уровне.`;
 
       const board = await buildLeaderboard();
       const reply = await callGroq([
         { role: "system", content: `${PERSONA}\n\nТекущая таблица лидеров (по сброшенным кг):\n${board}` },
-        { role: "user", content: `${situation}\nНапиши короткое сообщение поддержки в общий чат для ${displayName}. Если уместно — можешь упомянуть его место в таблице лидеров или подзадорить.` },
+        { role: "user", content: `${situation}\nНапиши короткое (1-2 предложения) сообщение поддержки в общий чат для ${displayName}. Если уместно — упомяни его место в таблице лидеров.` },
       ]);
       if (reply) await postAsPufik(reply);
       return NextResponse.json({ ok: true });
@@ -114,20 +27,16 @@ export async function POST(req: NextRequest) {
     if (type === "ask") {
       const { displayName, question } = body as { displayName: string; question: string };
 
-      // Контекст: последние 8 сообщений
       const recent = await sql(
         `SELECT display_name, text, is_system FROM chat_messages ORDER BY created_at DESC LIMIT 8`
-      );
-      const history = (recent as { display_name: string; text: string; is_system: boolean }[])
-        .reverse()
-        .filter(m => !m.is_system)
-        .map(m => `${m.display_name}: ${m.text}`)
-        .join("\n");
+      ) as { display_name: string; text: string; is_system: boolean }[];
+      const history = recent.reverse().filter(m => !m.is_system)
+        .map(m => `${m.display_name}: ${m.text}`).join("\n");
 
       const board = await buildLeaderboard();
       const reply = await callGroq([
-        { role: "system", content: `${PERSONA}\n\nТекущая таблица лидеров (по сброшенным кг):\n${board}\n\nНедавние сообщения в чате:\n${history}` },
-        { role: "user", content: `${displayName} обращается к тебе: "${question}"\nОтветь ему как Пуфик. Если спрашивают про таблицу лидеров, у кого какой прогресс, кто первый/последний — отвечай по данным таблицы выше.` },
+        { role: "system", content: `${PERSONA}\n\nТекущая таблица лидеров:\n${board}\n\nНедавние сообщения в чате:\n${history}` },
+        { role: "user", content: `${displayName} обращается к тебе: "${question}"\nОтветь как Пуфик (1-3 предложения). Если спрашивают про таблицу лидеров — отвечай по данным выше.` },
       ]);
       if (reply) await postAsPufik(reply);
       return NextResponse.json({ ok: true });
