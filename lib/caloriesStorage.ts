@@ -19,7 +19,7 @@ export interface DailyGoal { calories: number }
 function rowToEntry(r: any): FoodEntry {
   return {
     id:              r.id,
-    date:            r.date,
+    date:            String(r.date).split("T")[0],
     barcode:         r.barcode ?? "",
     name:            r.name,
     brand:           r.brand ?? "",

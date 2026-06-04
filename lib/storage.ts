@@ -14,7 +14,7 @@ export async function loadEntries(userId: string): Promise<WeightEntry[]> {
     .order("date");
   if (error) { console.error(error); return []; }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data ?? []).map((r: any) => ({ id: r.id, date: r.date, weight: Number(r.weight) }));
+  return (data ?? []).map((r: any) => ({ id: r.id, date: String(r.date).split("T")[0], weight: Number(r.weight) }));
 }
 
 export async function addEntry(

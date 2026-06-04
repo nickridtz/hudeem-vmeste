@@ -2,8 +2,14 @@ import type { UserProfile } from "./auth";
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
+/** Normalize any date value (Date, ISO timestamp, or YYYY-MM-DD) to "YYYY-MM-DD". */
+export function normalizeDate(value: unknown): string {
+  if (!value) return "";
+  return String(value).split("T")[0];
+}
+
 export function formatDate(isoDate: string): string {
-  const [y, m, d] = isoDate.split("-");
+  const [y, m, d] = normalizeDate(isoDate).split("-");
   return `${d}.${m}.${y}`;
 }
 
