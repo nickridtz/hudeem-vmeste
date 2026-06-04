@@ -81,7 +81,7 @@ function DashboardInner({ session }: { session: Session }) {
       const diffStr = diff !== null
         ? diff < -0.05 ? ` (−${Math.abs(diff).toFixed(1)} кг 🔥)` : diff > 0.05 ? ` (+${diff.toFixed(1)} кг)` : ""
         : "";
-      fetch("/api/chat", {
+      await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -89,6 +89,12 @@ function DashboardInner({ session }: { session: Session }) {
           text: `${session.avatar} ${session.displayName} отметил(а) вес: ${weight.toFixed(1)} кг${diffStr}`,
           isSystem: true,
         }),
+      });
+      // Пуфик пишет слова поддержки 🐶
+      fetch("/api/pufik", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "weight", displayName: session.displayName, weight, diff }),
       });
     }
   }

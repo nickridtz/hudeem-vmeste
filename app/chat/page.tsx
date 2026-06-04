@@ -31,6 +31,7 @@ function ChatInner({ session }: { session: Session }) {
   const [text, setText]         = useState("");
   const [sending, setSending]   = useState(false);
   const [sinceTs, setSinceTs]   = useState(0);
+  const [pufikTyping, setPufikTyping] = useState(false);
   const bottomRef               = useRef<HTMLDivElement>(null);
   const inputRef                = useRef<HTMLInputElement>(null);
   const firstLoad               = useRef(true);
@@ -62,6 +63,13 @@ function ChatInner({ session }: { session: Session }) {
     return () => clearInterval(id);
   }, [fetchMessages]);
 
+  // Определяем обращение к Пуфику: "пуфик ...", "@пуфик ...", "/пуфик ..."
+  function parsePufik(msg: string): string | null {
+    const m = msg.match(/^\s*[@/]?пуфик[\s,!:]*(.*)$/i);
+    if (!m) return null;
+    return m[1].trim() || "Привет!";
+  }
+
   async function send() {
     const msg = text.trim();
     if (!msg || sending) return;
@@ -81,6 +89,22 @@ function ChatInner({ session }: { session: Session }) {
     setSending(false);
     fetchMessages(sinceTs);
     inputRef.current?.focus();
+
+    // Обращение к Пуфику?
+    const question = parsePufik(msg);
+    if (question) {
+      setPufikTyping(true);
+      try {
+        await fetch("/api/pufik", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "ask", displayName: session.displayName, question }),
+        });
+      } finally {
+        setPufikTyping(false);
+        fetchMessages(sinceTs);
+      }
+    }
   }
 
   // Group messages by day
@@ -96,7 +120,7 @@ function ChatInner({ session }: { session: Session }) {
     <div className="flex flex-col h-[calc(100vh-8rem)] sm:h-[calc(100vh-10rem)] max-w-2xl mx-auto">
       <div className="mb-4 flex-shrink-0">
         <h2 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tighter-2">💬 Общий чат</h2>
-        <p className="text-zinc-400 text-sm mt-1">Общайся и следи за прогрессом команды</p>
+        <p className="text-zinc-400 text-sm mt-1">Общайся с командой · напиши «Пуфик, ...» чтобы спросить пёсика 🐶</p>
       </div>
 
       {/* Messages */}
@@ -127,20 +151,28 @@ function ChatInner({ session }: { session: Session }) {
                 </div>
               );
 
+              const isPufik = m.display_name === "Пуфик";
+
               return (
                 <div key={m.id} className={`flex gap-2 items-end ${isMe ? "flex-row-reverse" : ""}`}>
                   {!isMe && (
-                    <div className="w-8 h-8 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-base shrink-0 mb-0.5">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 mb-0.5 ${
+                      isPufik ? "bg-gradient-to-br from-amber-200 to-orange-300 dark:from-amber-500/30 dark:to-orange-500/20 ring-1 ring-amber-300/50" : "bg-zinc-100 dark:bg-zinc-800"
+                    }`}>
                       {m.avatar}
                     </div>
                   )}
                   <div className={`max-w-[75%] space-y-0.5 ${isMe ? "items-end" : "items-start"} flex flex-col`}>
                     {!isMe && (
-                      <span className="text-[11px] text-zinc-400 px-1">{m.display_name}</span>
+                      <span className={`text-[11px] px-1 ${isPufik ? "text-amber-500 font-semibold" : "text-zinc-400"}`}>
+                        {m.display_name}{isPufik && " · ИИ-помощник"}
+                      </span>
                     )}
                     <div className={`px-3.5 py-2 rounded-2xl text-sm shadow-sm ${
                       isMe
                         ? "bg-gradient-to-br from-green-500 to-emerald-500 text-white rounded-br-md"
+                        : isPufik
+                        ? "bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 text-zinc-900 dark:text-amber-50 ring-1 ring-amber-200/60 dark:ring-amber-500/20 rounded-bl-md"
                         : "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-bl-md"
                     }`}>
                       {m.text}
@@ -152,6 +184,16 @@ function ChatInner({ session }: { session: Session }) {
             })}
           </div>
         ))}
+        {pufikTyping && (
+          <div className="flex gap-2 items-end animate-fade-in">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-200 to-orange-300 dark:from-amber-500/30 dark:to-orange-500/20 ring-1 ring-amber-300/50 flex items-center justify-center text-base shrink-0">🐶</div>
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 ring-1 ring-amber-200/60 dark:ring-amber-500/20 rounded-2xl rounded-bl-md px-4 py-3 flex gap-1">
+              <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+              <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+            </div>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 
@@ -162,7 +204,7 @@ function ChatInner({ session }: { session: Session }) {
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
-          placeholder="Напиши сообщение…"
+          placeholder="Сообщение или «Пуфик, ...»"
           maxLength={500}
           className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-base sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all"
         />
