@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
           `Напиши тёплый вечерний отчёт в чат: отметь кто молодец по воде и взвешиванию, мягко подколи тех кто забыл, пожелай спокойной ночи. Можно чуть длиннее обычного (3-5 предложений), но без воды.` },
       ], 320);
       if (reply) await postAsPufik(reply);
-      return NextResponse.json({ ok: true, task, weights, water });
+      return NextResponse.json({ ok: true, task });
     }
 
     /* ── Еженедельный отчёт (воскресенье) ── */
