@@ -50,3 +50,28 @@ create table if not exists calorie_goals (
   user_id  text primary key references users(id) on delete cascade,
   calories integer default 1800
 );
+
+-- Замеры тела (см)
+create table if not exists body_measurements (
+  id         text primary key default gen_random_uuid()::text,
+  user_id    text references users(id) on delete cascade,
+  date       date not null,
+  waist      numeric(5,1),
+  chest      numeric(5,1),
+  hips       numeric(5,1),
+  thigh      numeric(5,1),
+  arm        numeric(5,1),
+  created_at timestamptz default now(),
+  unique(user_id, date)
+);
+
+-- Фото прогресса (приватные, по токену)
+create table if not exists progress_photos (
+  id         text primary key default gen_random_uuid()::text,
+  user_id    text references users(id) on delete cascade,
+  token      text not null,
+  date       date not null,
+  note       text default '',
+  image_data text not null,
+  created_at timestamptz default now()
+);

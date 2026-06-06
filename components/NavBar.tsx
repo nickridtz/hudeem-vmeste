@@ -8,8 +8,9 @@ import { getSession, logout, Session } from "@/lib/auth";
 import { ThemeToggle } from "./ThemeToggle";
 
 const NAV = [
-  { href: "/dashboard",   emoji: "📊", text: "Мой вес"  },
+  { href: "/dashboard",   emoji: "📊", text: "Вес"      },
   { href: "/calories",    emoji: "🍎", text: "Питание"  },
+  { href: "/progress",    emoji: "📷", text: "Прогресс" },
   { href: "/leaderboard", emoji: "🏆", text: "Лидеры"   },
   { href: "/chat",        emoji: "💬", text: "Чат"      },
 ];

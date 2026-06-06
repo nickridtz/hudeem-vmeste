@@ -17,6 +17,54 @@ export function todayISO(): string {
   return new Date().toISOString().split("T")[0];
 }
 
+const MONTHS_RU = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+export function formatDateLong(isoDate: string): string {
+  const d = new Date(normalizeDate(isoDate));
+  if (isNaN(d.getTime())) return "";
+  return `${d.getDate()} ${MONTHS_RU[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// ─── Trend forecast (linear regression) ───────────────────────────────────────
+
+export interface Forecast {
+  perWeek: number;            // кг/неделя (отрицательное = худеет)
+  goalDate: string | null;    // прогнозируемая дата достижения цели (ISO)
+  trend: "down" | "up" | "flat";
+  slopePerDay: number;        // кг/день
+}
+
+export function linearForecast(
+  entries: { date: string; weight: number }[],
+  goalWeight: number
+): Forecast | null {
+  if (entries.length < 2) return null;
+  const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+  const t0 = new Date(normalizeDate(sorted[0].date)).getTime();
+  const day = 1000 * 3600 * 24;
+  const xs = sorted.map((e) => (new Date(normalizeDate(e.date)).getTime() - t0) / day);
+  const ys = sorted.map((e) => e.weight);
+  const n  = xs.length;
+  const sx = xs.reduce((a, b) => a + b, 0);
+  const sy = ys.reduce((a, b) => a + b, 0);
+  const sxx = xs.reduce((a, b) => a + b * b, 0);
+  const sxy = xs.reduce((a, b, i) => a + b * ys[i], 0);
+  const denom = n * sxx - sx * sx;
+  if (denom === 0) return null;
+
+  const slope = (n * sxy - sx * sy) / denom;     // кг/день
+  const intercept = (sy - slope * sx) / n;
+  const perWeek = slope * 7;
+  const latestX = xs[n - 1];
+  const trend: Forecast["trend"] = Math.abs(perWeek) < 0.05 ? "flat" : perWeek < 0 ? "down" : "up";
+
+  let goalDate: string | null = null;
+  if (slope < 0) {
+    const xGoal = (goalWeight - intercept) / slope;
+    if (xGoal > latestX) goalDate = new Date(t0 + xGoal * day).toISOString().split("T")[0];
+  }
+  return { perWeek, goalDate, trend, slopePerDay: slope };
+}
+
 // ─── Per-user calculations ────────────────────────────────────────────────────
 
 export function totalDays(startDate: string, goalDate: string): number {
