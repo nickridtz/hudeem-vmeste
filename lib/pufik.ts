@@ -15,22 +15,33 @@ export const PERSONA = `Ты — Пуфик, добрый весёлый пёс�
 
 export { sql };
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function callGroq(messages: any[], maxTokens = 220): Promise<string | null> {
   if (!AI_KEY) { console.error("[pufik] AI key not set"); return null; }
-  try {
-    const res = await fetch(AI_BASE, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${AI_KEY}` },
-      body: JSON.stringify({ model: AI_MODEL, messages, temperature: 0.85, max_tokens: maxTokens }),
-    });
-    if (!res.ok) { console.error("[pufik] AI error:", res.status, await res.text()); return null; }
-    const json = await res.json();
-    return json.choices?.[0]?.message?.content?.trim() ?? null;
-  } catch (e) {
-    console.error("[pufik] callGroq exception:", e);
-    return null;
+  // До 3 попыток при перегрузке провайдера (429/503)
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(AI_BASE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${AI_KEY}` },
+        body: JSON.stringify({ model: AI_MODEL, messages, temperature: 0.85, max_tokens: maxTokens }),
+      });
+      if (res.status === 429 || res.status === 503) {
+        console.warn(`[pufik] AI busy (${res.status}), attempt ${attempt + 1}`);
+        await sleep(2000);
+        continue;
+      }
+      if (!res.ok) { console.error("[pufik] AI error:", res.status, await res.text()); return null; }
+      const json = await res.json();
+      return json.choices?.[0]?.message?.content?.trim() ?? null;
+    } catch (e) {
+      console.error("[pufik] callGroq exception:", e);
+      await sleep(1000);
+    }
   }
+  return null;
 }
 
 export async function postAsPufik(text: string) {
