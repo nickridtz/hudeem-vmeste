@@ -1,6 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PERSONA, callGroq, postAsPufik, buildLeaderboard, sql } from "@/lib/pufik";
 
+// GET /api/pufik  → диагностика (без утечки ключа)
+export async function GET() {
+  const key = process.env.GROQ_API_KEY ?? "";
+  const diag: Record<string, unknown> = {
+    keyPresent: key.length > 0,
+    keyLength: key.length,
+    keyPrefix: key ? key.slice(0, 4) : null,
+    model: "llama-3.3-70b-versatile",
+  };
+  if (!key) { diag.result = "GROQ_API_KEY не задан в окружении"; return NextResponse.json(diag); }
+
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model: "llama-3.3-70b-versatile", messages: [{ role: "user", content: "ping" }], max_tokens: 5 }),
+    });
+    diag.groqStatus = res.status;
+    if (res.ok) diag.result = "OK — Groq отвечает ✅";
+    else diag.result = await res.text();
+  } catch (e) {
+    diag.result = "Сетевая ошибка: " + (e instanceof Error ? e.message : String(e));
+  }
+  return NextResponse.json(diag);
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const type = body.type as "weight" | "ask";
