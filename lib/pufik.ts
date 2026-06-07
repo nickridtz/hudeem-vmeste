@@ -1,8 +1,12 @@
 import { neon } from "@neondatabase/serverless";
 
 const sql = neon(process.env.DATABASE_URL!);
-const GROQ_KEY = process.env.GROQ_API_KEY!;
-const MODEL = "llama-3.3-70b-versatile";
+
+// Провайдеро-независимая конфигурация ИИ.
+// По умолчанию — Groq. Для OpenRouter задай AI_BASE_URL, AI_MODEL, AI_API_KEY.
+export const AI_KEY  = process.env.AI_API_KEY || process.env.GROQ_API_KEY || "";
+export const AI_BASE = process.env.AI_BASE_URL || "https://api.groq.com/openai/v1/chat/completions";
+export const AI_MODEL = process.env.AI_MODEL || "llama-3.3-70b-versatile";
 
 export const PERSONA = `Ты — Пуфик, добрый весёлый пёсик-талисман приложения для похудения «Худеем Вместе».
 Характер: тёплый, заботливый, с лёгким юмором, искренне болеешь за каждого участника.
@@ -13,14 +17,14 @@ export { sql };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function callGroq(messages: any[], maxTokens = 220): Promise<string | null> {
-  if (!GROQ_KEY) { console.error("[pufik] GROQ_API_KEY not set"); return null; }
+  if (!AI_KEY) { console.error("[pufik] AI key not set"); return null; }
   try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    const res = await fetch(AI_BASE, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${GROQ_KEY}` },
-      body: JSON.stringify({ model: MODEL, messages, temperature: 0.85, max_tokens: maxTokens }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${AI_KEY}` },
+      body: JSON.stringify({ model: AI_MODEL, messages, temperature: 0.85, max_tokens: maxTokens }),
     });
-    if (!res.ok) { console.error("[pufik] Groq error:", res.status, await res.text()); return null; }
+    if (!res.ok) { console.error("[pufik] AI error:", res.status, await res.text()); return null; }
     const json = await res.json();
     return json.choices?.[0]?.message?.content?.trim() ?? null;
   } catch (e) {

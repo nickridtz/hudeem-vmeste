@@ -1,25 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PERSONA, callGroq, postAsPufik, buildLeaderboard, sql } from "@/lib/pufik";
+import { PERSONA, callGroq, postAsPufik, buildLeaderboard, sql, AI_KEY, AI_BASE, AI_MODEL } from "@/lib/pufik";
 
 // GET /api/pufik  → диагностика (без утечки ключа)
 export async function GET() {
-  const key = process.env.GROQ_API_KEY ?? "";
   const diag: Record<string, unknown> = {
-    keyPresent: key.length > 0,
-    keyLength: key.length,
-    keyPrefix: key ? key.slice(0, 4) : null,
-    model: "llama-3.3-70b-versatile",
+    keyPresent: AI_KEY.length > 0,
+    keyLength: AI_KEY.length,
+    keyPrefix: AI_KEY ? AI_KEY.slice(0, 6) : null,
+    baseUrl: AI_BASE,
+    model: AI_MODEL,
   };
-  if (!key) { diag.result = "GROQ_API_KEY не задан в окружении"; return NextResponse.json(diag); }
+  if (!AI_KEY) { diag.result = "AI ключ не задан в окружении"; return NextResponse.json(diag); }
 
   try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    const res = await fetch(AI_BASE, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model: "llama-3.3-70b-versatile", messages: [{ role: "user", content: "ping" }], max_tokens: 5 }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${AI_KEY}` },
+      body: JSON.stringify({ model: AI_MODEL, messages: [{ role: "user", content: "ping" }], max_tokens: 5 }),
     });
-    diag.groqStatus = res.status;
-    if (res.ok) diag.result = "OK — Groq отвечает ✅";
+    diag.status = res.status;
+    if (res.ok) diag.result = "OK — ИИ отвечает ✅";
     else diag.result = await res.text();
   } catch (e) {
     diag.result = "Сетевая ошибка: " + (e instanceof Error ? e.message : String(e));
