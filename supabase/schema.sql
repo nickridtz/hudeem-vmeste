@@ -65,13 +65,3 @@ create table if not exists body_measurements (
   unique(user_id, date)
 );
 
--- Фото прогресса (приватные, по токену)
-create table if not exists progress_photos (
-  id         text primary key default gen_random_uuid()::text,
-  user_id    text references users(id) on delete cascade,
-  token      text not null,
-  date       date not null,
-  note       text default '',
-  image_data text not null,
-  created_at timestamptz default now()
-);
