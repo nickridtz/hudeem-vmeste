@@ -30,37 +30,41 @@ function ChatInner({ session }: { session: Session }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText]         = useState("");
   const [sending, setSending]   = useState(false);
-  const [sinceTs, setSinceTs]   = useState(0);
   const [pufikTyping, setPufikTyping] = useState(false);
+  const sinceRef                = useRef(0);
+  const inFlight                = useRef(false);
   const bottomRef               = useRef<HTMLDivElement>(null);
   const inputRef                = useRef<HTMLInputElement>(null);
   const firstLoad               = useRef(true);
 
-  const fetchMessages = useCallback(async (since: number) => {
-    const res = await fetch(`/api/chat?after=${since}`);
-    const { messages: newMsgs } = await res.json() as { messages: ChatMessage[] };
-    if (!newMsgs.length) return;
-    setMessages(prev => {
-      const ids = new Set(prev.map(m => m.id));
-      const merged = [...prev, ...newMsgs.filter(m => !ids.has(m.id))];
-      return merged.slice(-200);
-    });
-    const lastTs = new Date(newMsgs[newMsgs.length - 1].created_at).getTime();
-    setSinceTs(lastTs);
-    if (firstLoad.current) {
+  const fetchMessages = useCallback(async () => {
+    if (inFlight.current) return;           // не накладывать запросы друг на друга
+    inFlight.current = true;
+    try {
+      const res = await fetch(`/api/chat?after=${sinceRef.current}`);
+      const { messages: newMsgs } = await res.json() as { messages: ChatMessage[] };
+      if (!newMsgs.length) return;
+      setMessages(prev => {
+        const ids = new Set(prev.map(m => m.id));
+        const merged = [...prev, ...newMsgs.filter(m => !ids.has(m.id))];
+        return merged.slice(-200);
+      });
+      sinceRef.current = new Date(newMsgs[newMsgs.length - 1].created_at).getTime();
+      const smooth = !firstLoad.current;
       firstLoad.current = false;
-      setTimeout(() => bottomRef.current?.scrollIntoView(), 50);
-    } else {
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
-    }
+      setTimeout(() => bottomRef.current?.scrollIntoView(smooth ? { behavior: "smooth" } : undefined), 50);
+    } catch { /* сеть моргнула — следующий тик подхватит */ }
+    finally { inFlight.current = false; }
   }, []);
 
   useEffect(() => {
-    fetchMessages(0);
+    fetchMessages();
     const id = setInterval(() => {
-      setSinceTs(ts => { fetchMessages(ts); return ts; });
+      if (document.visibilityState === "visible") fetchMessages();
     }, 8000);
-    return () => clearInterval(id);
+    const onVis = () => { if (document.visibilityState === "visible") fetchMessages(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { clearInterval(id); document.removeEventListener("visibilitychange", onVis); };
   }, [fetchMessages]);
 
   // Определяем обращение к Пуфику: "пуфик ...", "@пуфик ...", "/пуфик ..."
@@ -87,7 +91,7 @@ function ChatInner({ session }: { session: Session }) {
       }),
     });
     setSending(false);
-    fetchMessages(sinceTs);
+    fetchMessages();
     inputRef.current?.focus();
 
     // Обращение к Пуфику?
@@ -102,7 +106,7 @@ function ChatInner({ session }: { session: Session }) {
         });
       } finally {
         setPufikTyping(false);
-        fetchMessages(sinceTs);
+        fetchMessages();
       }
     }
   }

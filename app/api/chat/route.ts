@@ -29,13 +29,15 @@ export async function POST(req: NextRequest) {
       VALUES ($1, $2, $3, $4, $5)
     `, [userId ?? null, displayName ?? "", avatar ?? "👤", text.trim(), isSystem ?? false]);
 
-    // Keep only last 200 messages
-    await sql(`
-      DELETE FROM chat_messages
-      WHERE id NOT IN (
-        SELECT id FROM chat_messages ORDER BY created_at DESC LIMIT 200
-      )
-    `);
+    // Чистим таблицу не на каждом сообщении (≈7% запусков), чтобы не грузить БД
+    if (Math.random() < 0.07) {
+      await sql(`
+        DELETE FROM chat_messages
+        WHERE id NOT IN (
+          SELECT id FROM chat_messages ORDER BY created_at DESC LIMIT 200
+        )
+      `);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (e) {
